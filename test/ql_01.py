@@ -56,7 +56,7 @@ def get_env_feedback(S, A):
         R = record(Blow_wall, Buff, Kill_other, Suicide, Die)
     else:               # place Bomb
         R = record(Blow_wall, Buff, Kill_other, Suicide, Die)
-    return S_, R
+    return R
 
 def record(Blow_wall, Buff, Kill_other, Suicide, Die):
     # records for actions
@@ -95,7 +95,7 @@ def rl():
     q_table = build_q_table(N_STATES, ACTIONS)
     for episode in range(MAX_EPISODES):
         step_counter = 0
-        S = 0
+        S = np.zeros((1, 25))
         is_terminated = False
         update_env(S, episode, step_counter)
         while not is_terminated:
