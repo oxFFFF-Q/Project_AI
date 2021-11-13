@@ -44,39 +44,38 @@ def get_env_feedback(S, A):
     #   Killed by myself (-10),
     #   Killed by someone else (-5)
 
+    Blow_wall, Buff, Kill_other, Suicide, Die = S
+
     if A == 'Up':    # move up
-
+        R = record(Blow_wall, Buff, Kill_other, Suicide, Die)
     elif A == 'Down':  # move down
-
+        R = record(Blow_wall, Buff, Kill_other, Suicide, Die)
     elif A == 'Left':  # move left
-
+        R = record(Blow_wall, Buff, Kill_other, Suicide, Die)
     elif A == 'Right':  # move right
-
+        R = record(Blow_wall, Buff, Kill_other, Suicide, Die)
     else:               # place Bomb
-
-
-
-    '''
-    if A == 'right':    # move right
-        if S == N_STATES - 2:   # terminate
-            S_ = 'terminal'
-            R = 1
-        else:
-            S_ = S + 1
-            R = 0
-    else:   # move left
-        R = 0
-        if S == 0:
-            S_ = S  # reach the wall
-        else:
-            S_ = S - 1
-    '''
-
+        R = record(Blow_wall, Buff, Kill_other, Suicide, Die)
     return S_, R
 
+def record(Blow_wall, Buff, Kill_other, Suicide, Die):
+    # records for actions
+    R = 0
+    if Blow_wall:
+        R += 1
+    elif Buff:
+        R += 2
+    elif Kill_other:
+        R += 5
+    elif Suicide:
+        R -= 10
+    else:  # Die = 1
+        R -= 5
+    return R
 
 def update_env(S, episode, step_counter):
     # This is how environment be updated
+    '''
     env_list = ['-']*(N_STATES-1) + ['T']   # '---------T' our environment
     if S == 'terminal':
         interaction = 'Episode %s: total_steps = %s' % (episode+1, step_counter)
@@ -88,6 +87,7 @@ def update_env(S, episode, step_counter):
         interaction = ''.join(env_list)
         print('\r{}'.format(interaction), end='')
         time.sleep(FRESH_TIME)
+    '''
 
 
 def rl():
