@@ -1,0 +1,113 @@
+import pommerman
+import gym
+import torch
+import argparse
+import random
+import numpy as np
+
+from pommerman import agents
+from pommerman.configs import one_vs_one_env
+from DQNAgent import DQNAgent
+from utils import featurize, CustomEnvWrapper
+
+
+def main():
+    win = 0
+    total_game = 0
+    win_rate = 0
+    """解析参数"""
+    parser = argparse.ArgumentParser(description='DQN pommerman MARL')
+    parser.add_argument('--episodes', type=int, default=3000, help='episodes')
+    parser.add_argument('--maxsteps', type=int, default=200, help='maximum steps')
+    parser.add_argument('--showevery', type=int, default=1, help='report loss every n episodes')
+
+    parser.add_argument('--epsilon', type=float, default=0.05, help='parameter for epsilon greedy')
+    parser.add_argument('--eps_decay', type=float, default=0.995, help='epsilon decay rate')
+    parser.add_argument('--min_eps', type=float, default=0.05, help='minimum epsilon for decaying')
+    parser.add_argument('--gamma', type=float, default=0.95, help='gamma')
+    parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+
+    parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
+    parser.add_argument('--batch', type=int, default=50, help='batch size for replay buffer')
+
+    parser.add_argument('--gpu', type=str, default='0', help='gpu number')
+
+    args = parser.parse_args()
+
+    # GPU
+    args.device = torch.device('cuda:{}'.format(args.gpu) if torch.cuda.is_available() else "cpu")
+    print("GPU using status: ", args.device)
+
+    agent_list = [agents.SimpleAgent(), agents.SimpleAgent()]  # placeholder
+    env = pommerman.make('OneVsOne-v0', agent_list)
+
+    agent1 = DQNAgent(env, args)  # TODO: assertionerror; not agents.BaseAgent??
+    agent2 = agents.SimpleAgent()
+
+    agent_list = [agent1, agent2]
+    env = pommerman.make('OneVsOne-v0', agent_list)
+
+    episode_rewards = []
+    action_n = env.action_space.n
+
+    for episode in range(args.episodes):
+        states = env.reset()
+
+        state_feature = featurize(env, states)
+        done = False
+        episode_reward = 0
+        for step in range(args.maxsteps):
+            # 刷新环境
+            # env.render()
+
+            # 选择action
+            if (args.epsilon > random.random()) or (step <= args.batch):
+                actions = env.act(states)
+            else:
+                actions = env.act(states)
+                dqn_action = agent1.dqnact(state_feature)
+                actions[0] = int(np.int64(dqn_action))
+
+            next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
+            next_state_feature = featurize(env, next_state)
+            episode_reward += reward[0]
+            # 存储记忆
+            agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
+
+            # 先走batch步之后再开始学习
+            if agent1.buffer.size() > args.batch:
+                agent1.train(args.gamma, args.batch)
+
+            # 更新state
+            states = next_state
+
+            if done:
+                break
+
+        if done:
+            episode_rewards.append(episode_reward)
+            total_game += 1
+            if 0 in info.get('winners', []):
+                win += 1
+
+        win_rate = win / total_game
+
+        if episode % args.showevery == 0:
+            print("{} of 3000 episodes done, result: {}".format(episode + 1,
+                                                            'Win' if 0 in info.get('winners', []) else 'Lose'))
+            print("Average Episode Reward: {:.3f}, win_rate_last_1000_game:{:.2f}".format(np.mean(episode_rewards),
+                                                                                      win_rate))
+
+        if total_game >= 999:
+            win = 0
+            total_game = 0
+
+        agent1.epsdecay()
+
+    env.close()
+
+    # TODO: Implement Target Network
+
+
+if __name__ == '__main__':
+    main()
