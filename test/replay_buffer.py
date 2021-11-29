@@ -57,19 +57,31 @@ class ReplayBuffer2():
 
     def sample(self, n):
         mini_batch = random.sample(self.buffer, n)
-        s_lst, a_lst, r_lst, s_prime_list, done_mask_list = [], [], [], [], []
+        sl_lst, sa_lst, a_lst, r_lst, sl_prime_list, sa_prime_list, done_mask_list = [], [], [], [], [], [], []
 
         for transition in mini_batch:   #transition: tuple
             s, a, r, s_prime, done_mask = transition
-            s_lst.append(s)
+            sl_lst.append(s['local'])
+            sa_lst.append(s['additional'])
             a_lst.append([a])
             r_lst.append([r])
-            s_prime_list.append(s_prime)
+            sl_prime_list.append(s_prime['local'])
+            sa_prime_list.append(s_prime['additional'])
             done_mask_list.append([done_mask])
-
-        return (torch.tensor(s_lst, dtype=torch.float),
+        """
+        sl_lst = np.array(sl_lst)
+        sa_lst = np.array(sa_lst)
+        a_lst = np.array(a_lst)
+        r_lst = np.array(r_lst)
+        sl_prime_list = np.array(sl_prime_list)
+        sa_prime_list = np.array(sa_prime_list)
+        done_mask_list = np.array(done_mask_list)
+        """
+        return (torch.tensor(sl_lst, dtype=torch.float),
+                torch.tensor(sa_lst, dtype=torch.float),
                 torch.tensor(a_lst), torch.tensor(r_lst),
-                torch.tensor(s_prime_list, dtype=torch.float),
+                torch.tensor(sl_prime_list, dtype=torch.float),
+                torch.tensor(sa_prime_list, dtype=torch.float),
                 torch.tensor(done_mask_list))
 
     def size(self):
