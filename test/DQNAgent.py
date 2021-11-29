@@ -64,7 +64,7 @@ class DQNAgent(BaseAgent):
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
-    def update(self, gamma, batch_size):
+    def train(self, gamma, batch_size):
 
         states, actions, rewards, next_states, done = self.buffer.sample(batch_size)
         action_index = actions.squeeze(-2)[:,0].unsqueeze(1)

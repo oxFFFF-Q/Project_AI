@@ -5,7 +5,6 @@ import argparse
 import random
 import numpy as np
 
-
 from pommerman import agents
 from pommerman.configs import one_vs_one_env
 from DQNAgent import DQNAgent
@@ -13,6 +12,9 @@ from utils import featurize, CustomEnvWrapper
 
 
 def main():
+    win = 0
+    total_game = 0
+    win_rate = 0
     """解析参数"""
     parser = argparse.ArgumentParser(description='DQN pommerman MARL')
     parser.add_argument('--episodes', type=int, default=3000, help='episodes')
@@ -26,8 +28,8 @@ def main():
     parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
-    parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
-    parser.add_argument('--tryepi', type=int, default=500, help='episode for agent to gain experience')
+    parser.add_argument('--batch', type=int, default=50, help='batch size for replay buffer')
+
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
 
     args = parser.parse_args()
@@ -48,54 +50,57 @@ def main():
     episode_rewards = []
     action_n = env.action_space.n
 
-    win = 0
-
     for episode in range(args.episodes):
-        states = env.reset()  
+        states = env.reset()
 
         state_feature = featurize(env, states)
         done = False
         episode_reward = 0
         for step in range(args.maxsteps):
             # 刷新环境
-            if episode > (args.episodes - 10):
-                env.render()
-            
+            # env.render()
+
             # 选择action
-            if (args.epsilon > random.random()) or (episode <= args.tryepi):
+            if (args.epsilon > random.random()) or (step <= args.batch):
                 actions = env.act(states)
             else:
                 actions = env.act(states)
                 dqn_action = agent1.dqnact(state_feature)
                 actions[0] = int(np.int64(dqn_action))
-            
+
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
             next_state_feature = featurize(env, next_state)
             episode_reward += reward[0]
             # 存储记忆
             agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
-            
+
             # 先走batch步之后再开始学习
             if agent1.buffer.size() > args.batch:
-                agent1.update(args.gamma, args.batch)
-            
+                agent1.train(args.gamma, args.batch)
+
             # 更新state
             states = next_state
-            
+
             if done:
                 break
 
         if done:
             episode_rewards.append(episode_reward)
+            total_game += 1
+            if 0 in info.get('winners', []):
+                win += 1
+
+        win_rate = win / total_game
+
         if episode % args.showevery == 0:
-            print(f"Episode: {episode + 1:2d} finished, result: {'Win' if 0 in info.get('winners', []) else 'Lose'}")
-            print(f"Avg Episode Reward: {np.mean(episode_rewards)}")
-        if 0 in info.get('winners', []) and episode > 500:
-            win += 1
-    
-        if episode > 500:
-            winrate = win / (episode + 1)
-            print(f"current winrate: {winrate}")
+            print("{} of 3000 episodes done, result: {}".format(episode + 1,
+                                                            'Win' if 0 in info.get('winners', []) else 'Lose'))
+            print("Average Episode Reward: {:.3f}, win_rate_last_1000_game:{:.2f}".format(np.mean(episode_rewards),
+                                                                                      win_rate))
+
+        if total_game >= 999:
+            win = 0
+            total_game = 0
 
         agent1.epsdecay()
 
