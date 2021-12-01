@@ -2,6 +2,7 @@ from typing import Dict, List
 import numpy as np
 from pommerman.agents import BaseAgent
 from pommerman.envs.v0 import Pomme
+from pommerman.envs.v2 import Pomme
 from pommerman import utility
 
 
@@ -118,8 +119,8 @@ def featurize(env, states):
     '''
     
     #length = len(env.featurize(states[0]).tolist())
-    local = []
     #list = env.featurize(states[0]).tolist()
+    local = []
     states = states[0]
     board = states["board"].reshape(-1).astype(np.float32)
     bomb_blast_strength = states["bomb_blast_strength"].reshape(-1).astype(np.float32)
@@ -143,3 +144,37 @@ def featurize(env, states):
     additional = np.concatenate((position, ammo, blast_strength, can_kick, teammate, enemies))
     feature['additional'] = additional.tolist()
     return feature
+
+def featurize2(env, states, aid):
+    """
+    feature = []
+    for state in states:
+        feature.append((env.featurize(state)).tolist())
+    """
+    local = []
+    states = states[aid]
+    board = states["board"].reshape(-1).astype(np.float32)
+    bomb_blast_strength = states["bomb_blast_strength"].reshape(-1).astype(np.float32)
+    bomb_life = states["bomb_life"].reshape(-1).astype(np.float32)
+    bomb_moving_direction = states["bomb_moving_direction"].reshape(-1).astype(np.float32)
+    flame_life = states["flame_life"].reshape(-1).astype(np.float32)
+    local.append(board.tolist())
+    local.append(bomb_blast_strength.tolist())
+    local.append(bomb_life.tolist())
+    local.append(bomb_moving_direction.tolist())
+    local.append(flame_life.tolist())
+    feature = []
+
+    additional = []
+    position = utility.make_np_float(states["position"])
+    ammo = utility.make_np_float([states["ammo"]])
+    blast_strength = utility.make_np_float([states["blast_strength"]])
+    can_kick = utility.make_np_float([states["can_kick"]])
+    teammate = utility.make_np_float([states["teammate"].value])
+    enemies = utility.make_np_float([e.value for e in states["enemies"]])
+    additional = np.concatenate((position, ammo, blast_strength, can_kick, teammate, enemies))
+    message = states['message']
+    message = utility.make_np_float(message)
+    return np.concatenate(
+            (board, bomb_blast_strength, bomb_life, position, ammo,
+             blast_strength, can_kick, teammate, enemies, message)).tolist()

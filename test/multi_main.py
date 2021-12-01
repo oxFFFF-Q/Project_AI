@@ -9,7 +9,7 @@ import numpy as np
 from pommerman import agents
 from pommerman.configs import radio_v2_env, team_v0_fast_env, radio_competition_env
 from DQN2Agent import DQN2Agent
-from utils import featurize, CustomEnvWrapper
+from utils import featurize, CustomEnvWrapper, featurize2
 
 
 def main():
@@ -55,7 +55,8 @@ def main():
     for episode in range(args.episodes):
         states = env.reset()  
 
-        state_feature = featurize(env, states)
+        state_feature1 = featurize2(env, states, 0)
+        state_feature3 = featurize2(env, states, 2)
         done = False
         episode_reward = 0
         for step in range(args.maxsteps):
@@ -68,21 +69,23 @@ def main():
                 actions = env.act(states)
             else:
                 actions = env.act(states)
-                dqn_action1 = agent1.dqnact(state_feature)
-                dqn_action3 = agent3.dqnact(state_feature)
+                dqn_action1 = agent1.dqnact(state_feature1)
+                dqn_action3 = agent3.dqnact(state_feature3)
                 actions[0] = int(np.int64(dqn_action1))
                 actions[2] = int(np.int64(dqn_action3))
             
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
-            next_state_feature = featurize(env, next_state)
+            next_state_feature1 = featurize2(env, next_state, 0)
+            next_state_feature3 = featurize2(env, next_state, 2)
             episode_reward += reward[0]
             # 存储记忆
-            agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
-            
+            agent1.buffer.append([state_feature1, actions, reward, next_state_feature1, done])
+            agent3.buffer.append([state_feature3, actions, reward, next_state_feature3, done])
             # 先走batch步之后再开始学习
             if agent1.buffer.size() > args.batch:
                 agent1.update(args.gamma, args.batch)
-            
+            if agent3.buffer.size() > args.batch:
+                agent3.update(args.gamma, args.batch)
             # 更新state
             states = next_state
             
@@ -102,6 +105,7 @@ def main():
             print(f"current winrate: {winrate}")
 
         agent1.epsdecay()
+        agent3.epsdecay()
 
     env.close()
 
