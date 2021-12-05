@@ -61,7 +61,7 @@ class DQNAgent(BaseAgent):
     def act(self, obs, action_space):
         return self.baseAgent.act(obs,self.action_n)
 
-    def dqnact(self, obs):
+    def dqnact(self, obs):                          # ??
         lx = obs['local']
         ax = obs['additional']
         action = self.eval_net.forward1(lx,ax)[0]
@@ -78,14 +78,13 @@ class DQNAgent(BaseAgent):
         curr_Q_batch = self.eval_net(statesl,statesa)#[:,0]
         #print(curr_Q_batch)
         curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
-        
         next_batch = self.target_net(next_statesl, next_statesa)#[:,0]
         next_Q = torch.max(next_batch,1)[0]
 
         rewards_batch = rewards.squeeze(-2)[:,0]
         #print(rewards_batch)
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
-        expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
+        expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch    ## ??
 
         # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards

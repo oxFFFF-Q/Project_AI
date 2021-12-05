@@ -2,7 +2,7 @@ import random
 import tensorflow as tf
 import pommerman
 import numpy as np
-from DQN import constants
+from pommerman import constants
 #from DQN_new import DQNAgent
 from DQNAgent import DQNAgent
 #from pommerman.agents.simple_agent import SimpleAgent

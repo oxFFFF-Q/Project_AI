@@ -135,7 +135,7 @@ def featurize(env, states):
 
     additional = []
     position = utility.make_np_float(states["position"])
-    ammo = utility.make_np_float([states["ammo"]])
+    ammo = utility.make_np_float([states["ammo"]])  #fff
     blast_strength = utility.make_np_float([states["blast_strength"]])
     can_kick = utility.make_np_float([states["can_kick"]])
     teammate = utility.make_np_float([states["teammate"].value])
