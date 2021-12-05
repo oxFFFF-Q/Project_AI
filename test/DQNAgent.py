@@ -68,12 +68,25 @@ class DQNAgent(BaseAgent):
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
-    def update(self, gamma, batch_size):
+    def update(self, gamma, batch_size,episode, step):
+        #每走十步学习一次
         if self.learn_step_counter % 10 == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learn_step_counter += 1
 
-        statesl, statesa, actions, rewards, next_statesl, next_statesa, done = self.buffer.sample(batch_size)
+        statesl, statesa, actions, rewards, next_statesl, next_statesa, done, epistep = self.buffer.sample(batch_size)
+        #print(epistep)
+        
+        #计算reward
+        computed_reward = []
+        for l, a, es in zip(statesl, statesa, epistep):
+            #print("l, a, es is:")
+            #print(l, a, es)
+            r = self.compute_reward(l, a, es)
+            computed_reward.append(r)
+        #这是得到的reward
+        computed_reward = torch.tensor(computed_reward)
+
         action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
         curr_Q_batch = self.eval_net(statesl,statesa)#[:,0]
         #print(curr_Q_batch)
@@ -85,6 +98,7 @@ class DQNAgent(BaseAgent):
         rewards_batch = rewards.squeeze(-2)[:,0]
         #print(rewards_batch)
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
+        #需要把done计算进去
         expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
 
         # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
@@ -98,6 +112,12 @@ class DQNAgent(BaseAgent):
 
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
+
+    def compute_reward(self, local, additional, epistep):
+        m = self.buffer.get(tuple(epistep.tolist()))
+        print("element in memory:")
+        print(m)
+        return 0
 
 
 class Net1(nn.Module):
@@ -128,7 +148,7 @@ class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(5,32,2,stride=1,padding=1),
+            nn.Conv2d(9,32,2,stride=1,padding=1),
             nn.ReLU(),
             nn.Conv2d(32,64,3,stride=1,padding=1),
             nn.ReLU(),
@@ -147,7 +167,8 @@ class Net(nn.Module):
     def forward(self, lx, ax):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
-        lx = lx.unsqueeze(3)
+        #lx = lx.unsqueeze(3)
+        #print(lx[0])
         #x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)
@@ -159,7 +180,7 @@ class Net(nn.Module):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
         lx = lx.unsqueeze(0)
-        lx = lx.unsqueeze(3)
+        #lx = lx.unsqueeze(3)
         #x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)

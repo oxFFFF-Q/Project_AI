@@ -50,16 +50,28 @@ class ReplayBuffer(object):
 
 class ReplayBuffer2():
     def __init__(self, buffer_limit):
-        self.buffer = collections.deque(maxlen=buffer_limit)
+        #self.buffer = collections.deque(maxlen=buffer_limit)
+        self.limit = buffer_limit
+        self.memory = {}
 
-    def append(self, transition):
-        self.buffer.append(transition)
+    def append(self, transition, episode, step):
+        #self.buffer.append(transition)
+        key = (episode, step)
+        self.memory[key] = transition
+        if len(self.memory) > self.limit:
+            key = self.memory.keys()[0]
+            self.memory.pop(key)
+
+    def get(self, key):
+        return self.memory.get(key)
 
     def sample(self, n):
-        mini_batch = random.sample(self.buffer, n)
+        #mini_batch = random.sample(self.buffer, n)
+        mini_batch = random.sample(self.memory.keys(), n)
         sl_lst, sa_lst, a_lst, r_lst, sl_prime_list, sa_prime_list, done_mask_list = [], [], [], [], [], [], []
-
-        for transition in mini_batch:   #transition: tuple
+        epistep = []
+        for key in mini_batch:   #transition: tuple
+            transition = self.memory.get(key)
             s, a, r, s_prime, done_mask = transition
             sl_lst.append(s['local'])
             sa_lst.append(s['additional'])
@@ -68,6 +80,7 @@ class ReplayBuffer2():
             sl_prime_list.append(s_prime['local'])
             sa_prime_list.append(s_prime['additional'])
             done_mask_list.append([done_mask])
+            epistep.append(key)
         """
         sl_lst = np.array(sl_lst)
         sa_lst = np.array(sa_lst)
@@ -82,7 +95,7 @@ class ReplayBuffer2():
                 torch.tensor(a_lst), torch.tensor(r_lst),
                 torch.tensor(sl_prime_list, dtype=torch.float),
                 torch.tensor(sa_prime_list, dtype=torch.float),
-                torch.tensor(done_mask_list))
+                torch.tensor(done_mask_list), torch.tensor(epistep))
     
     def sample2(self, n):
         mini_batch = random.sample(self.buffer, n)

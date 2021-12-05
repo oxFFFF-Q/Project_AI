@@ -120,8 +120,9 @@ def featurize(env, states):
     
     #length = len(env.featurize(states[0]).tolist())
     #list = env.featurize(states[0]).tolist()
-    local = []
+    local = featurize2D(states)
     states = states[0]
+    """
     board = states["board"].reshape(-1).astype(np.float32)
     bomb_blast_strength = states["bomb_blast_strength"].reshape(-1).astype(np.float32)
     bomb_life = states["bomb_life"].reshape(-1).astype(np.float32)
@@ -132,6 +133,7 @@ def featurize(env, states):
     local.append(bomb_life.tolist())
     local.append(bomb_moving_direction.tolist())
     local.append(flame_life.tolist())
+    """
     feature = {'local': local}
 
     additional = []
@@ -141,9 +143,113 @@ def featurize(env, states):
     can_kick = utility.make_np_float([states["can_kick"]])
     teammate = utility.make_np_float([states["teammate"].value])
     enemies = utility.make_np_float([e.value for e in states["enemies"]])
-    additional = np.concatenate((position, ammo, blast_strength, can_kick, teammate, enemies))
+    #print(position, ammo, blast_strength, can_kick, teammate, enemies)
+    """
+    additional.append(position.tolist())
+    additional.append(ammo.tolist())
+    additional.append(blast_strength.tolist())
+    additional.append(can_kick.tolist())
+    additional.append(teammate.tolist())
+    additional.append(enemies.tolist())
+    """
+    #print(additional)
+    #position占两个数，所以你要取ammo的话就要取additional[2]
+    additional = np.concatenate(
+            (position, ammo,
+             blast_strength, can_kick, teammate, enemies))
+
     feature['additional'] = additional.tolist()
     return feature
+
+def featurize2D(states):
+    feature2D = []
+    # 共9个矩阵
+    for board in rebuild_board(states[0]["board"]):
+        feature2D.append(board)
+
+    feature2D.append(states[0]["bomb_blast_strength"].tolist())
+    feature2D.append(states[0]["bomb_life"].tolist())
+    feature2D.append(states[0]["bomb_moving_direction"].tolist())
+    feature2D.append(states[0]["flame_life"].tolist())
+
+    return feature2D
+
+def rebuild_board(board):
+    # 将board中数据分离，2D化
+    rigid = []
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 1:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        rigid.append(new_row)
+
+    wood = []
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 2:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        wood.append(new_row)
+
+    bomb = []
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 3:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        bomb.append(new_row)
+
+    flame = []
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 4:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        flame.append(new_row)
+    """
+    暂时用不到fog
+    fog =[]
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 4:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        fog.append(new_row)
+    """
+    power_up = []
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 6 or num == 7 or num == 8:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        power_up.append(new_row)
+
+    agents = []
+    # 如果是9,10,11,12代为此处为agent,则取1.0
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 9 or num == 10 or num == 11 or num == 12:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        agents.append(new_row)
+
+    return rigid, wood, bomb, power_up, agents
+
 
 def featurize2(env, states, aid):
     """
