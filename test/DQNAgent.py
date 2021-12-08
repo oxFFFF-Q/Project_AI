@@ -72,30 +72,48 @@ class DQNAgent(BaseAgent):
         rigid, wood, bomb, power_up, agents = feature['local']
         position, ammo, blast_strength, can_kick, teammate, enemies = feature['additional']
         reward = 0
-        # 木墙 wood wall
+        # reward_wood
         if position in np.argwhere(bomb==1):
             m = position[0]
             n = position[1]
             l = blast_strength
+            f = [l,l,l,l]       # Scope of flame: up down left right
             bomb_withflame = np.zeros_like(bomb)
             bomb_withflame[position] = 1
+            # 假设火焰无限大,判断实体墙是否阻断火焰
+            flame_up = bomb_withflame
+            flame_down = bomb_withflame
+            flame_left = bomb_withflame
+            flame_right = bomb_withflame
+            flame_up[0:m,n] = 1
+            flame_down[m:,n] = 1
+            flame_left[m,0:n] = 1
+            flame_right[m,n:] = 1
+            if np.argwhere(flame_up*rigid==1).size != 0:
+                l[0] = np.min(np.argwhere(flame_up*rigid==1)[:,0])
+            if np.argwhere(flame_down*rigid==1).size != 0:
+                l[1] = np.min(np.argwhere(flame_down*rigid==1)[:,0])
+            if np.argwhere(flame_left*rigid==1).size != 0:
+                l[2] = np.min(np.argwhere(flame_left*rigid==1)[:,0])
+            if np.argwhere(flame_right*rigid==1).size != 0:
+                l[3] = np.min(np.argwhere(flame_right*rigid==1)[:,0])
             # 判断火焰是否出界,顺序：上下左右
-            if m-l < 0:
+            if m-f[0] < 0:
                 bomb_withflame[0:m,n] = 1
             else:
-                bomb_withflame[m-l:m, n] = 1
-            if m+l > 9:
+                bomb_withflame[m-f[0]:m, n] = 1
+            if m+f[1] > 9:
                 bomb_withflame[m:,n] = 1
             else:
-                bomb_withflame[m:m+l, n] = 1
-            if n-l < 0:
+                bomb_withflame[m:m+f[1], n] = 1
+            if n-f[2] < 0:
                 bomb_withflame[m,0:n] = 1
             else:
-                bomb_withflame[m,n-l:n] = 1
-            if m+l > 9:
+                bomb_withflame[m,n-f[2]:n] = 1
+            if m+f[3] > 9:
                 bomb_withflame[m,n:] = 1
             else:
-                bomb_withflame[m,n:n+l] = 1
+                bomb_withflame[m,n:n+f[3]] = 1
             num_wood = np.count_nonzero(wood*bomb_withflame == 1)
             reward += num_wood
 
