@@ -1,4 +1,4 @@
-from pommerman.agents.simple_agent import SimpleAgent
+from pommerman.agents.simple_agent import SimpleAgent #random_agent
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -68,55 +68,88 @@ class DQNAgent(BaseAgent):
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
-    def reward(self,feature):
-        rigid, wood, bomb, power_up, agents = feature['local']
-        position, ammo, blast_strength, can_kick, teammate, enemies = feature['additional']
+    def reward(self, featurel, featurea, action, sl, sa, epistep):
+        rigid = featurel[0]
+        wood = featurel[1]
+        bomb = featurel[2]
+        agents = featurel[4]
+        power_up = featurel[3]
+        position0 = int(featurea[0].item())
+        position1 = int(featurea[1].item())
+        ammo = int(featurea[2].item())
+        blast_strength = int(featurea[3].item())
+        can_kick = int(featurea[4].item())
+        teammate = int(featurea[5].item())
+        enemies = int(featurea[6].item())
         reward = 0
-        # reward_wood
-        if position in np.argwhere(bomb==1):
-            m = position[0]
-            n = position[1]
+        sagents = sl[4]
+        sbombs = sl[2]
+        es = epistep.tolist()
+        es[1] += 2
+        
+        #道具
+        sammo = int(sa[2].item())
+        if ammo > sammo and ammo > 1:
+            reward += 0.3
+        
+        #print(position0, position1)
+        #print(int(bomb[int(position0),  int(position1)]))
+        if int(action[0].item()) == 5:
+            m = position0
+            n = position1
             l = blast_strength
-            f = [l,l,l,l]       # Scope of flame: up down left right
-            bomb_withflame = np.zeros_like(bomb)
-            bomb_withflame[position] = 1
+            f = [0,7,0,7]       # Scope of flame: up down left right
+            
+            bomb_withflame = np.zeros_like(agents)
+            bomb_withflame[m, n] = 1
             # 假设火焰无限大,判断实体墙是否阻断火焰
             flame_up = bomb_withflame
             flame_down = bomb_withflame
             flame_left = bomb_withflame
             flame_right = bomb_withflame
             flame_up[0:m,n] = 1
+            fr1 = flame_up*rigid.numpy()
             flame_down[m:,n] = 1
             flame_left[m,0:n] = 1
             flame_right[m,n:] = 1
-            if np.argwhere(flame_up*rigid==1).size != 0:
-                l[0] = np.min(np.argwhere(flame_up*rigid==1)[:,0])
-            if np.argwhere(flame_down*rigid==1).size != 0:
-                l[1] = np.min(np.argwhere(flame_down*rigid==1)[:,0])
-            if np.argwhere(flame_left*rigid==1).size != 0:
-                l[2] = np.min(np.argwhere(flame_left*rigid==1)[:,0])
-            if np.argwhere(flame_right*rigid==1).size != 0:
-                l[3] = np.min(np.argwhere(flame_right*rigid==1)[:,0])
+            fr1 = np.argwhere(fr1==1)
+            if fr1.size != 0:
+                f[0] = np.max(fr1[:,0])
+                print(f[0])
+            if np.argwhere(flame_down*rigid.numpy()==1).size != 0:
+                f[1] = np.min(np.argwhere(flame_down*rigid.numpy()==1)[:,0])
+                print(f[1])
+            if np.argwhere(flame_left*rigid.numpy()==1).size != 0:
+                f[2] = np.max(np.argwhere(flame_left*rigid.numpy()==1)[0,:])
+                print(f[2])
+            if np.argwhere(flame_right*rigid.numpy()==1).size != 0:
+                f[3] = np.min(np.argwhere(flame_right*rigid.numpy()==1)[0,:])
+                print(f[3])
             # 判断火焰是否出界,顺序：上下左右
-            if m-f[0] < 0:
+            if m-l < 0 and f[0] == 0:
                 bomb_withflame[0:m,n] = 1
+            elif f[0] == 0:
+                bomb_withflame[m-l:m,n] = 1
             else:
-                bomb_withflame[m-f[0]:m, n] = 1
-            if m+f[1] > 9:
+                bomb_withflame[f[0]+1:m, n] = 1
+            if m+l > 7:
                 bomb_withflame[m:,n] = 1
             else:
-                bomb_withflame[m:m+f[1], n] = 1
-            if n-f[2] < 0:
+                bomb_withflame[m:f[1]-1, n] = 1
+            if n-l < 0:
                 bomb_withflame[m,0:n] = 1
             else:
-                bomb_withflame[m,n-f[2]:n] = 1
-            if m+f[3] > 9:
+                bomb_withflame[m,f[2]+1:n] = 1
+            if m+f[3] > 7:
                 bomb_withflame[m,n:] = 1
             else:
-                bomb_withflame[m,n:n+f[3]] = 1
-            num_wood = np.count_nonzero(wood*bomb_withflame == 1)
+                bomb_withflame[m,n:f[3]-1] = 1
+            num_wood = np.count_nonzero(wood.numpy()*bomb_withflame == 1)
+            print("map")
+            print(bomb_withflame)
+            print(rigid)
             reward += num_wood
-
+        
         return reward
 
     def update(self, gamma, batch_size,episode, step):
@@ -130,12 +163,9 @@ class DQNAgent(BaseAgent):
         
         #计算reward
         computed_reward = []
-        for l, a, es in zip(statesl, statesa, epistep):
-            #print("l, a, es is:")
-            #print(l, a, es)
-            r = self.compute_reward(l, a, es)
-            computed_reward.append(r)
-        #这是得到的reward
+        for l, a, action, sl, sa, es in zip(next_statesl, next_statesa, actions, statesl, statesa, epistep):
+            computed_reward.append(self.reward(l, a, action[0], sl, sa, es))
+        
         computed_reward = torch.tensor(computed_reward)
         action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
         curr_Q_batch = self.eval_net(statesl,statesa)#[:,0]
@@ -146,6 +176,8 @@ class DQNAgent(BaseAgent):
         next_Q = torch.max(next_batch,1)[0]
 
         rewards_batch = rewards.squeeze(-2)[:,0]
+        rewards_batch = rewards_batch + computed_reward
+        #print(rewards_batch)
         #print(rewards_batch)
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
         #需要把done计算进去

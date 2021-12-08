@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--maxsteps', type=int, default=200, help='maximum steps')
     parser.add_argument('--showevery', type=int, default=1, help='report loss every n episodes')
 
-    parser.add_argument('--epsilon', type=float, default=0.05, help='parameter for epsilon greedy')
+    parser.add_argument('--epsilon', type=float, default=0.9, help='parameter for epsilon greedy')
     parser.add_argument('--eps_decay', type=float, default=0.995, help='epsilon decay rate')
     parser.add_argument('--min_eps', type=float, default=0.05, help='minimum epsilon for decaying')
     parser.add_argument('--gamma', type=float, default=0.95, help='gamma')
@@ -67,6 +67,8 @@ def main():
                 actions = env.act(states)
                 dqn_action = agent1.dqnact(state_feature)
                 actions[0] = int(np.int64(dqn_action))
+                
+
             
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
 
