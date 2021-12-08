@@ -68,6 +68,39 @@ class DQNAgent(BaseAgent):
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
+    def reward(self,feature):
+        rigid, wood, bomb, power_up, agents = feature['local']
+        position, ammo, blast_strength, can_kick, teammate, enemies = feature['additional']
+        reward = 0
+        # 木墙 wood wall
+        if position in np.argwhere(bomb==1):
+            m = position[0]
+            n = position[1]
+            l = blast_strength
+            bomb_withflame = np.zeros_like(bomb)
+            bomb_withflame[position] = 1
+            # 判断火焰是否出界,顺序：上下左右
+            if m-l < 0:
+                bomb_withflame[0:m,n] = 1
+            else:
+                bomb_withflame[m-l:m, n] = 1
+            if m+l > 9:
+                bomb_withflame[m:,n] = 1
+            else:
+                bomb_withflame[m:m+l, n] = 1
+            if n-l < 0:
+                bomb_withflame[m,0:n] = 1
+            else:
+                bomb_withflame[m,n-l:n] = 1
+            if m+l > 9:
+                bomb_withflame[m,n:] = 1
+            else:
+                bomb_withflame[m,n:n+l] = 1
+            num_wood = np.count_nonzero(wood*bomb_withflame == 1)
+            reward += num_wood
+
+        return reward
+
     def update(self, gamma, batch_size,episode, step):
         #每走十步学习一次
         if self.learn_step_counter % 10 == 0:
@@ -86,7 +119,6 @@ class DQNAgent(BaseAgent):
             computed_reward.append(r)
         #这是得到的reward
         computed_reward = torch.tensor(computed_reward)
-
         action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
         curr_Q_batch = self.eval_net(statesl,statesa)#[:,0]
         #print(curr_Q_batch)
