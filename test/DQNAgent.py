@@ -6,7 +6,6 @@ from pommerman import characters
 import torch.nn.functional as F
 
 import random
-import gym
 import numpy as np
 from utils import featurize
 
