@@ -69,6 +69,9 @@ class DQNAgent(BaseAgent):
         return result
 
     def reward(self, featurel, featurea, action, sl, sa, epistep):
+        # set up reward
+        r_wood = 0.1
+
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
         bomb = featurel[2]
@@ -103,52 +106,43 @@ class DQNAgent(BaseAgent):
             flame_right = np.zeros_like(bomb_flame)
             if m - f[0] < 0:  # 上边界
                 f[0] = m
-                flame_up[m - f[0]:m, n] = 1
+            flame_up[m - f[0]:m, n] = 1
             if m + f[1] > bomb_flame.shape[0] - 1:  # 下边界
                 f[1] = bomb_flame.shape[0] - 1 - m
-                flame_down[m + 1:m + f[1] + 1, n] = 1
+            flame_down[m + 1:m + f[1] + 1, n] = 1
             if n - f[2] < 0:  # 左边界
                 f[2] = n
-                flame_left[m, n - f[2]:n] = 1
+            flame_left[m, n - f[2]:n] = 1
             if n + f[3] > bomb_flame.shape[0] - 1:  # 右边界
                 f[3] = bomb_flame.shape[0] - 1 - n
-                flame_right[m, n + 1:n + f[3] + 1] = 1
+            flame_right[m, n + 1:n + f[3] + 1] = 1
 
             rigid_0 = flame_up * rigid
+            rigid_1 = flame_down * rigid
+            rigid_2 = flame_left * rigid
+            rigid_3 = flame_right * rigid
             if np.argwhere(rigid_0==1).size != 0:    # 上实体墙
                 rigid_up = np.max(np.argwhere(rigid_0==1)[:,0][0])
-                print('r_up')
                 if rigid_up >= m-f[0]:
                     f[0] = m - rigid_up - 1
-                    print('up')
-            rigid_1 = flame_down*rigid
             if np.argwhere(rigid_1==1).size != 0:   # 下实体墙
                 rigid_down = np.min(np.argwhere(rigid_1 == 1)[:, 0][0])
-                print('r_down')
                 if rigid_down <= m+f[1]:
                     f[1] = rigid_down - m - 1
-                    print('down')
-            rigid_2 = flame_left*rigid
             if np.argwhere(rigid_2==1).size != 0:  # 左实体墙
                 rigid_left = np.max(np.argwhere(rigid_2 == 1)[0, :][1])
-                print('r_left')
                 if rigid_left >= n-f[2]:
                     f[2] = n - rigid_left - 1
-                    print('left')
-            rigid_3 = flame_right*rigid
             if np.argwhere(rigid_3==1).size != 0:  # 右实体墙
                 rigid_right = np.min(np.argwhere(rigid_3 == 1)[0, :][1])
-                print('r_right')
                 if rigid_right <= n+f[3]:
                     f[3] = rigid_right - n - 1
-                    print('right')
-
-
             bomb_flame[m-f[0]:m+f[1]+1, n] = 1
             bomb_flame[m, n-f[2]:n+f[3]+1] = 1
             num_wood = np.count_nonzero(wood*bomb_flame == 1)
-            reward += num_wood*0.1
-
+            reward += num_wood*r_wood
+            '''
+            # test
             print('rigid')
             print(rigid)
             print('position_bomb')
@@ -162,6 +156,7 @@ class DQNAgent(BaseAgent):
             print('num_wood')
             print(num_wood)
             print('-------------------------------------')
+            '''
         return reward
 
     def update(self, gamma, batch_size,episode, step):
