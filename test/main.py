@@ -27,7 +27,7 @@ def main():
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
-    parser.add_argument('--tryepi', type=int, default=500, help='episode for agent to gain experience')
+    parser.add_argument('--tryepi', type=int, default=5, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
 
     args = parser.parse_args()
@@ -52,10 +52,10 @@ def main():
 
     for episode in range(args.episodes):
         states = env.reset()
-        state_feature = featurize(env, states)
         done = False
         episode_reward = 0
         for step in range(args.maxsteps):
+            state_feature = featurize(env, states)
             # 刷新环境
             if episode > (args.episodes - 10):
                 env.render()
@@ -73,11 +73,11 @@ def main():
             next_state_feature = featurize(env, next_state)
             episode_reward += reward[0]
             # 存储记忆
-            agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
+            agent1.buffer.append([state_feature, actions, reward, next_state_feature, done], episode, step)
             
             # 先走batch步之后再开始学习
             if episode >= args.tryepi:
-                agent1.update(args.gamma, args.batch)
+                agent1.update(args.gamma, args.batch,episode, step)
             
             # 更新state
             states = next_state

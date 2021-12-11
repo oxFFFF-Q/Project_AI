@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import random
 import gym
 import numpy as np
-from utils import featurize
+from utils import featurize, featurize2
 
 from pommerman.agents import BaseAgent
 from replay_buffer import ReplayBuffer, ReplayBuffer2
@@ -71,7 +71,7 @@ class DQN2Agent(BaseAgent):
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learn_step_counter += 1
 
-        states, actions, rewards, next_states, done = self.buffer.sample(batch_size)
+        states, actions, rewards, next_states, done = self.buffer.sample2(batch_size)
         action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
         curr_Q_batch = self.eval_net(states)[:,0]
         curr_Q = curr_Q_batch.gather(1, action_index).squeeze(-1)
@@ -103,7 +103,7 @@ class Net2(nn.Module):
     def __init__(self,env):
         super(Net2,self).__init__()
         self.obs_n = env.observation_space.shape[0]
-        self.fc1 = nn.Linear(self.obs_n,128)
+        self.fc1 = nn.Linear(374,128)
         self.fc1.weight.data.normal_(0, 0.1)
         self.out = nn.Linear(128,6)
         self.out.weight.data.normal_(0, 0.1)

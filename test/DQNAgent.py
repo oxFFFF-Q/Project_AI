@@ -61,30 +61,132 @@ class DQNAgent(BaseAgent):
     def act(self, obs, action_space):
         return self.baseAgent.act(obs,self.action_n)
 
-    def dqnact(self, obs):                          # ??
+    def dqnact(self, obs):
         lx = obs['local']
         ax = obs['additional']
         action = self.eval_net.forward1(lx,ax)[0]
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
-    def update(self, gamma, batch_size):
+    def reward(self, featurel, featurea, action, sl, sa, epistep):
+        # set up reward
+        r_wood = 0.1
+
+        rigid = featurel[0].numpy()
+        wood = featurel[1].numpy()
+        bomb = featurel[2]
+        agents = featurel[4]
+        power_up = featurel[3]
+        position0 = int(featurea[0].item())
+        position1 = int(featurea[1].item())
+        ammo = int(featurea[2].item())
+        blast_strength = int(featurea[3].item())
+        can_kick = int(featurea[4].item())
+        teammate = int(featurea[5].item())
+        enemies = int(featurea[6].item())
+        reward = 0
+        sagents = sl[4]
+        sbombs = sl[2]
+        es = epistep.tolist()
+        es[1] += 2
+
+        # reward_wood
+        if int(action[0].item()) == 5:
+            position_bomb = np.array([position0,position1])
+            m = position_bomb[0]
+            n = position_bomb[1]
+            l = blast_strength
+            f = [l,l,l,l]       # Scope of flame: up down left right
+            bomb_flame = np.zeros_like(bomb.numpy())
+
+            # 判断实体墙或边界是否阻断火焰
+            flame_up = np.zeros_like(bomb_flame)
+            flame_down = np.zeros_like(bomb_flame)
+            flame_left = np.zeros_like(bomb_flame)
+            flame_right = np.zeros_like(bomb_flame)
+            if m - f[0] < 0:  # 上边界
+                f[0] = m
+            flame_up[m - f[0]:m, n] = 1
+            if m + f[1] > bomb_flame.shape[0] - 1:  # 下边界
+                f[1] = bomb_flame.shape[0] - 1 - m
+            flame_down[m + 1:m + f[1] + 1, n] = 1
+            if n - f[2] < 0:  # 左边界
+                f[2] = n
+            flame_left[m, n - f[2]:n] = 1
+            if n + f[3] > bomb_flame.shape[0] - 1:  # 右边界
+                f[3] = bomb_flame.shape[0] - 1 - n
+            flame_right[m, n + 1:n + f[3] + 1] = 1
+
+            rigid_0 = flame_up * rigid
+            rigid_1 = flame_down * rigid
+            rigid_2 = flame_left * rigid
+            rigid_3 = flame_right * rigid
+            if np.argwhere(rigid_0==1).size != 0:    # 上实体墙
+                rigid_up = np.max(np.argwhere(rigid_0==1)[:,0][0])
+                if rigid_up >= m-f[0]:
+                    f[0] = m - rigid_up - 1
+            if np.argwhere(rigid_1==1).size != 0:   # 下实体墙
+                rigid_down = np.min(np.argwhere(rigid_1 == 1)[:, 0][0])
+                if rigid_down <= m+f[1]:
+                    f[1] = rigid_down - m - 1
+            if np.argwhere(rigid_2==1).size != 0:  # 左实体墙
+                rigid_left = np.max(np.argwhere(rigid_2 == 1)[0, :][1])
+                if rigid_left >= n-f[2]:
+                    f[2] = n - rigid_left - 1
+            if np.argwhere(rigid_3==1).size != 0:  # 右实体墙
+                rigid_right = np.min(np.argwhere(rigid_3 == 1)[0, :][1])
+                if rigid_right <= n+f[3]:
+                    f[3] = rigid_right - n - 1
+            bomb_flame[m-f[0]:m+f[1]+1, n] = 1
+            bomb_flame[m, n-f[2]:n+f[3]+1] = 1
+            num_wood = np.count_nonzero(wood*bomb_flame == 1)
+            reward += num_wood*r_wood
+            '''
+            # test
+            print('rigid')
+            print(rigid)
+            print('position_bomb')
+            print(position_bomb)
+            print('f')
+            print(f)
+            print('l')
+            print(l)
+            print('bomb_flame')
+            print(bomb_flame)
+            print('num_wood')
+            print(num_wood)
+            print('-------------------------------------')
+            '''
+        return reward
+
+    def update(self, gamma, batch_size,episode, step):
+        #每走十步学习一次
         if self.learn_step_counter % 10 == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learn_step_counter += 1
 
-        statesl, statesa, actions, rewards, next_statesl, next_statesa, done = self.buffer.sample(batch_size)
+        statesl, statesa, actions, rewards, next_statesl, next_statesa, done, epistep = self.buffer.sample(batch_size)
+        #print(epistep)
+        
+        #计算reward
+        computed_reward = []
+        for l, a, action, sl, sa, es in zip(next_statesl, next_statesa, actions, statesl, statesa, epistep):
+            computed_reward.append(self.reward(l, a, action[0], sl, sa, es))
+        #这是得到的reward
+        computed_reward = torch.tensor(computed_reward)
         action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
         curr_Q_batch = self.eval_net(statesl,statesa)#[:,0]
         #print(curr_Q_batch)
         curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
+        
         next_batch = self.target_net(next_statesl, next_statesa)#[:,0]
         next_Q = torch.max(next_batch,1)[0]
 
         rewards_batch = rewards.squeeze(-2)[:,0]
         #print(rewards_batch)
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
-        expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch    ## ??
+        #需要把done计算进去
+        expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
 
         # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
@@ -97,6 +199,11 @@ class DQNAgent(BaseAgent):
 
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
+
+    def compute_reward(self, local, additional, epistep):
+        m = self.buffer.get(tuple(epistep.tolist()))
+
+        return 0
 
 
 class Net1(nn.Module):
@@ -127,7 +234,7 @@ class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(5,32,2,stride=1,padding=1),
+            nn.Conv2d(9,32,2,stride=1,padding=1),
             nn.ReLU(),
             nn.Conv2d(32,64,3,stride=1,padding=1),
             nn.ReLU(),
@@ -146,7 +253,8 @@ class Net(nn.Module):
     def forward(self, lx, ax):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
-        lx = lx.unsqueeze(3)
+        #lx = lx.unsqueeze(3)
+        #print(lx[0])
         #x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)
@@ -158,7 +266,7 @@ class Net(nn.Module):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
         lx = lx.unsqueeze(0)
-        lx = lx.unsqueeze(3)
+        #lx = lx.unsqueeze(3)
         #x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)
