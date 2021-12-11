@@ -32,7 +32,7 @@ class DQNAgent(BaseAgent):
     def new_model(self):
 
         model = Sequential()
-        input_shape = (constants.MINIBATCH_SIZE, 9, 8, 8)
+        input_shape = (constants.MINIBATCH_SIZE, 12, 8, 8)
         model.add(Conv2D(256, 3, input_shape=input_shape[1:], activation="relu"))
         # print(model.output_shape)
         model.add(MaxPooling2D(pool_size=(2, 2), data_format='channels_first'))
@@ -105,7 +105,7 @@ class DQNAgent(BaseAgent):
 
     def get_q_value(self, state):
 
-        return self.training_model.predict_on_batch(np.array(state).reshape(-1,9,8,8))
+        return self.training_model.predict_on_batch(np.array(state).reshape(-1, 12, 8, 8))
 
         # epsilon衰减
 
