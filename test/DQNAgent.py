@@ -1,4 +1,4 @@
-from pommerman.agents.simple_agent import SimpleAgent
+from pommerman.agents.simple_agent import SimpleAgent #random_agent
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -67,7 +67,7 @@ class DQNAgent(BaseAgent):
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
-    def reward(self, featurel, featurea, action, sl, sa, epistep):
+    def reward(self, featurel, featurea, action, sl, sa):
         # set up reward
         r_wood = 0.1
 
@@ -84,60 +84,20 @@ class DQNAgent(BaseAgent):
         teammate = int(featurea[5].item())
         enemies = int(featurea[6].item())
         reward = 0
-        sagents = sl[4]
-        sbombs = sl[2]
-        es = epistep.tolist()
-        es[1] += 2
-
+        #sagents = sl[4]
+        #sbombs = sl[2]
+        # reward_ammo
+        sammo = int(sa[2].item())
+        if ammo > 2 and ammo > sammo:
+            reward += 0.3
+        #reward_strength
+        sstrength = int(sa[3].item())
+        if blast_strength > sstrength:
+            reward += 0.3
         # reward_wood
         if int(action[0].item()) == 5:
-            position_bomb = np.array([position0,position1])
-            m = position_bomb[0]
-            n = position_bomb[1]
-            l = blast_strength
-            f = [l,l,l,l]       # Scope of flame: up down left right
-            bomb_flame = np.zeros_like(bomb.numpy())
-
-            # 判断实体墙或边界是否阻断火焰
-            flame_up = np.zeros_like(bomb_flame)
-            flame_down = np.zeros_like(bomb_flame)
-            flame_left = np.zeros_like(bomb_flame)
-            flame_right = np.zeros_like(bomb_flame)
-            if m - f[0] < 0:  # 上边界
-                f[0] = m
-            flame_up[m - f[0]:m, n] = 1
-            if m + f[1] > bomb_flame.shape[0] - 1:  # 下边界
-                f[1] = bomb_flame.shape[0] - 1 - m
-            flame_down[m + 1:m + f[1] + 1, n] = 1
-            if n - f[2] < 0:  # 左边界
-                f[2] = n
-            flame_left[m, n - f[2]:n] = 1
-            if n + f[3] > bomb_flame.shape[0] - 1:  # 右边界
-                f[3] = bomb_flame.shape[0] - 1 - n
-            flame_right[m, n + 1:n + f[3] + 1] = 1
-
-            rigid_0 = flame_up * rigid
-            rigid_1 = flame_down * rigid
-            rigid_2 = flame_left * rigid
-            rigid_3 = flame_right * rigid
-            if np.argwhere(rigid_0==1).size != 0:    # 上实体墙
-                rigid_up = np.max(np.argwhere(rigid_0==1)[:,0][0])
-                if rigid_up >= m-f[0]:
-                    f[0] = m - rigid_up - 1
-            if np.argwhere(rigid_1==1).size != 0:   # 下实体墙
-                rigid_down = np.min(np.argwhere(rigid_1 == 1)[:, 0][0])
-                if rigid_down <= m+f[1]:
-                    f[1] = rigid_down - m - 1
-            if np.argwhere(rigid_2==1).size != 0:  # 左实体墙
-                rigid_left = np.max(np.argwhere(rigid_2 == 1)[0, :][1])
-                if rigid_left >= n-f[2]:
-                    f[2] = n - rigid_left - 1
-            if np.argwhere(rigid_3==1).size != 0:  # 右实体墙
-                rigid_right = np.min(np.argwhere(rigid_3 == 1)[0, :][1])
-                if rigid_right <= n+f[3]:
-                    f[3] = rigid_right - n - 1
-            bomb_flame[m-f[0]:m+f[1]+1, n] = 1
-            bomb_flame[m, n-f[2]:n+f[3]+1] = 1
+            reward += 0.01
+            bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
             num_wood = np.count_nonzero(wood*bomb_flame == 1)
             reward += num_wood*r_wood
             '''
@@ -156,21 +116,105 @@ class DQNAgent(BaseAgent):
             print(num_wood)
             print('-------------------------------------')
             '''
+        """
+        exist_bomb = []
+        for row, rowbomb in enumerate(bomb):
+            for col, _ in enumerate(rowbomb):
+                if bomb[row, col] == 1:
+                    exist_bomb.append((row, col))
+        #print(bomb)
+        #print(exist_bomb)
+        
+        if exist_bomb:
+            for ebomb in exist_bomb:
+                bomb_flame1 = self.build_flame(ebomb[0], ebomb[1], rigid, blast_strength)
+                if bomb_flame1[position0, position1] == 1:
+                    reward -= 0.5
+                #print(bomb_flame1)
+        """
         return reward
 
-    def update(self, gamma, batch_size,episode, step):
+    def build_flame(self, position0, position1, rigid, blast_strength):
+        
+        position_bomb = np.array([position0,position1])
+        m = position_bomb[0]
+        n = position_bomb[1]
+        l = blast_strength
+        f = [l,l,l,l]       # Scope of flame: up down left right
+        bomb_flame = np.zeros_like(rigid)
+
+        # 判断实体墙或边界是否阻断火焰
+        flame_up = np.zeros_like(bomb_flame)
+        flame_down = np.zeros_like(bomb_flame)
+        flame_left = np.zeros_like(bomb_flame)
+        flame_right = np.zeros_like(bomb_flame)
+        if m - f[0] < 0:  # 上边界
+            f[0] = m
+        flame_up[m - f[0]:m, n] = 1
+        if m + f[1] > bomb_flame.shape[0] - 1:  # 下边界
+            f[1] = bomb_flame.shape[0] - 1 - m
+        flame_down[m + 1:m + f[1] + 1, n] = 1
+        if n - f[2] < 0:  # 左边界
+            f[2] = n
+        flame_left[m, n - f[2]:n] = 1
+        if n + f[3] > bomb_flame.shape[0] - 1:  # 右边界
+            f[3] = bomb_flame.shape[0] - 1 - n
+        flame_right[m, n + 1:n + f[3] + 1] = 1
+
+        rigid_0 = flame_up * rigid
+        rigid_1 = flame_down * rigid
+        rigid_2 = flame_left * rigid
+        rigid_3 = flame_right * rigid
+        if np.argwhere(rigid_0==1).size != 0:    # 上实体墙
+            rigid_up = np.max(np.argwhere(rigid_0==1)[:,0][0])
+            if rigid_up >= m-f[0]:
+                f[0] = m - rigid_up - 1
+        if np.argwhere(rigid_1==1).size != 0:   # 下实体墙
+            rigid_down = np.min(np.argwhere(rigid_1 == 1)[:, 0][0])
+            if rigid_down <= m+f[1]:
+                f[1] = rigid_down - m - 1
+        if np.argwhere(rigid_2==1).size != 0:  # 左实体墙
+            rigid_left = np.max(np.argwhere(rigid_2 == 1)[0, :][1])
+            if rigid_left >= n-f[2]:
+                f[2] = n - rigid_left - 1
+        if np.argwhere(rigid_3==1).size != 0:  # 右实体墙
+            rigid_right = np.min(np.argwhere(rigid_3 == 1)[0, :][1])
+            if rigid_right <= n+f[3]:
+                f[3] = rigid_right - n - 1
+        bomb_flame[m-f[0]:m+f[1]+1, n] = 1
+        bomb_flame[m, n-f[2]:n+f[3]+1] = 1
+        
+        '''
+        # test
+        print('rigid')
+        print(rigid)
+        print('position_bomb')
+        print(position_bomb)
+        print('f')
+        print(f)
+        print('l')
+        print(l)
+        print('bomb_flame')
+        print(bomb_flame)
+        print('num_wood')
+        print(num_wood)
+        print('-------------------------------------')
+        '''
+        return bomb_flame
+
+    def update(self, gamma, batch_size):
         #每走十步学习一次
         if self.learn_step_counter % 10 == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learn_step_counter += 1
 
-        statesl, statesa, actions, rewards, next_statesl, next_statesa, done, epistep = self.buffer.sample(batch_size)
+        statesl, statesa, actions, rewards, next_statesl, next_statesa, done = self.buffer.sample(batch_size)
         #print(epistep)
         
         #计算reward
         computed_reward = []
-        for l, a, action, sl, sa, es in zip(next_statesl, next_statesa, actions, statesl, statesa, epistep):
-            computed_reward.append(self.reward(l, a, action[0], sl, sa, es))
+        for l, a, action, sl, sa in zip(next_statesl, next_statesa, actions, statesl, statesa):
+            computed_reward.append(self.reward(l, a, action[0], sl, sa))
         #这是得到的reward
         computed_reward = torch.tensor(computed_reward)
         action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
@@ -182,6 +226,10 @@ class DQNAgent(BaseAgent):
         next_Q = torch.max(next_batch,1)[0]
 
         rewards_batch = rewards.squeeze(-2)[:,0]
+        for reward in rewards_batch:
+            if reward == -1:
+                reward *= 10
+        rewards_batch = rewards_batch + computed_reward
         #print(rewards_batch)
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
         #需要把done计算进去
