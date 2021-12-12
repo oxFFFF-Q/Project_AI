@@ -27,7 +27,7 @@ def main():
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
-    parser.add_argument('--tryepi', type=int, default=5, help='episode for agent to gain experience')
+    parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
 
     args = parser.parse_args()
@@ -54,10 +54,11 @@ def main():
         states = env.reset()
         done = False
         episode_reward = 0
+        step = 0
         for step in range(args.maxsteps):
             state_feature = featurize(env, states)
             # 刷新环境
-            if episode > (args.episodes - 10):
+            if episode % 100 ==0 and episode != 0:
                 env.render()
 
             # 选择action
@@ -75,11 +76,11 @@ def main():
             next_state_feature = featurize(env, next_state)
             episode_reward += reward[0]
             # 存储记忆
-            agent1.buffer.append([state_feature, actions, reward, next_state_feature, done], episode, step)
+            agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
             
             # 先走batch步之后再开始学习
             if episode >= args.tryepi:
-                agent1.update(args.gamma, args.batch,episode, step)
+                agent1.update(args.gamma, args.batch)
             
             # 更新state
             states = next_state
@@ -92,11 +93,11 @@ def main():
         if episode % args.showevery == 0:
             print(f"Episode: {episode + 1:2d} finished, result: {'Win' if 0 in info.get('winners', []) else 'Lose'}")
             #print(f"Avg Episode Reward: {np.mean(episode_rewards)}")
-        if 0 in info.get('winners', []) and episode > 500:
+        if 0 in info.get('winners', []) and episode > args.tryepi:
             win += 1
     
-        if episode > 500:
-            winrate = win / (episode - 500 + 1)
+        if episode > args.tryepi:
+            winrate = win / (episode - args.tryepi + 1)
             print(f"current winrate: {winrate}")
 
         agent1.epsdecay()
