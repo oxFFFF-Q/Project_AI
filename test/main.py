@@ -28,7 +28,7 @@ def main():
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
-    parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
+    parser.add_argument('--tryepi', type=int, default=5, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
     parser.add_argument('--win_in_epi', type=int, default='20', help='calculate win in epi..')
     args = parser.parse_args()
@@ -57,7 +57,7 @@ def main():
         #episode_reward = 0
         step = 0
         for step in range(args.maxsteps):
-            state_feature = featurize(env, states)
+            state_feature = featurize(env, states[0])
             # 刷新环境
             if episode % 100 ==0 and episode != 0:
                 env.render()
@@ -74,10 +74,10 @@ def main():
             
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
 
-            next_state_feature = featurize(env, next_state)
+            next_state_feature = featurize(env, next_state[0])
             #episode_reward += reward[0]
             # 存储记忆
-            agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
+            agent1.buffer.append([state_feature, actions[0], reward[0], next_state_feature, done])
             
             # 先走batch步之后再开始学习
             if episode >= args.tryepi:
@@ -102,14 +102,14 @@ def main():
             #print(f"Avg Episode Reward: {np.mean(episode_rewards)}")
         
         
-        #if episode > args.tryepi:
-        if 0 in info.get('winners', []):
-            win_buffer.append(1)
-        elif 1 in info.get('winners', []):
-            win_buffer.append(0)
-        if len(win_buffer) == 20:
-            avg = sum(win_buffer) / len(win_buffer)
-            print(f"current winrate: {avg}")
+        if episode > args.tryepi:
+            if 0 in info.get('winners', []):
+                win_buffer.append(1)
+            elif 1 in info.get('winners', []):
+                win_buffer.append(0)
+            if len(win_buffer) == 20:
+                avg = sum(win_buffer) / len(win_buffer)
+                print(f"current winrate: {avg}")
         
         print('epsilon',args.epsilon)
 

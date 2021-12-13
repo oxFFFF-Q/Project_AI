@@ -230,7 +230,7 @@ def featurize(env, states):
     
     #length = len(env.featurize(states[0]).tolist())
     #list = env.featurize(states[0]).tolist()
-    states = states[0]
+    #states = states[0]
     local = featurize2D(states)
     """
     board = states["board"].reshape(-1).astype(np.float32)
