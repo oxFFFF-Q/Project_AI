@@ -63,8 +63,11 @@ def main():
                 env.render()
 
             # 选择action
-            if (episode <= args.tryepi) or (args.epsilon > random.random()):
+            if episode <= args.tryepi:
                 actions = env.act(states)
+            elif args.epsilon > random.random():
+                actions = env.act(states)
+                actions[0] = random.randrange(0,6,1)
             else:
                 actions = env.act(states)
                 dqn_action = agent1.dqnact(state_feature)
@@ -103,6 +106,7 @@ def main():
         
         
         if episode > args.tryepi:
+            agent1.epsdecay()
             if 0 in info.get('winners', []):
                 win_buffer.append(1)
             elif 1 in info.get('winners', []):
@@ -111,9 +115,9 @@ def main():
                 avg = sum(win_buffer) / len(win_buffer)
                 print(f"current winrate: {avg}")
         
-        print('epsilon',args.epsilon)
+        print('epsilon',agent1.epsilon)
 
-        agent1.epsdecay()
+        
 
     env.close()
 

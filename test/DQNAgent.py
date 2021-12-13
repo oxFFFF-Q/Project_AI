@@ -111,7 +111,7 @@ class DQNAgent(BaseAgent):
         skick = int(sa[4].item())
         if can_kick and not skick:
             reward += r_powerup
-        print(action)
+        #print(action)
         # reward_wood
         if int(action.item()) == 5:
             reward += r_put_bomb
