@@ -16,7 +16,7 @@ from utils import featurize, CustomEnvWrapper
 def main():
     """解析参数"""
     parser = argparse.ArgumentParser(description='DQN pommerman MARL')
-    parser.add_argument('--episodes', type=int, default=3000, help='episodes')
+    parser.add_argument('--episodes', type=int, default=10000, help='episodes')
     parser.add_argument('--maxsteps', type=int, default=200, help='maximum steps')
     parser.add_argument('--showevery', type=int, default=1, help='report loss every n episodes')
 
@@ -105,6 +105,7 @@ def main():
         if len(win_buffer) == 20:
             avg = sum(win_buffer) / len(win_buffer)
             print(f"current winrate: {avg}")
+            print('epsilon',args.epsilon)
 
         agent1.epsdecay()
 
