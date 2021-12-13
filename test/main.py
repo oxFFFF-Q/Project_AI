@@ -4,6 +4,7 @@ import torch
 import argparse
 import random
 import numpy as np
+import collections
 
 
 from pommerman import agents
@@ -29,7 +30,7 @@ def main():
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
     parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
-
+    parser.add_argument('--win_in_epi', type=int, default='20', help='calculate win in epi..')
     args = parser.parse_args()
 
     # GPU
@@ -45,15 +46,15 @@ def main():
     agent_list = [agent1, agent2]
     env = pommerman.make('OneVsOne-v0', agent_list)
 
-    episode_rewards = []
-    action_n = env.action_space.n
+    #episode_rewards = []
+    #action_n = env.action_space.n
 
-    win = 0
-
+    # collect win times
+    win_buffer = collections.deque(maxlen=args.win_in_epi)
     for episode in range(args.episodes):
         states = env.reset()
         done = False
-        episode_reward = 0
+        #episode_reward = 0
         step = 0
         for step in range(args.maxsteps):
             state_feature = featurize(env, states)
@@ -74,7 +75,7 @@ def main():
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
 
             next_state_feature = featurize(env, next_state)
-            episode_reward += reward[0]
+            #episode_reward += reward[0]
             # 存储记忆
             agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
             
@@ -87,18 +88,23 @@ def main():
             
             if done:
                 break
-
+        '''
         if done:
             episode_rewards.append(episode_reward)
+        '''
         if episode % args.showevery == 0:
             print(f"Episode: {episode + 1:2d} finished, result: {'Win' if 0 in info.get('winners', []) else 'Lose'}")
             #print(f"Avg Episode Reward: {np.mean(episode_rewards)}")
-        if 0 in info.get('winners', []) and episode > args.tryepi:
-            win += 1
-    
+        
+        
         if episode > args.tryepi:
-            winrate = win / (episode - args.tryepi + 1)
-            print(f"current winrate: {winrate}")
+            if 0 in info.get('winners', []):
+                win_buffer.append(1)
+            else :
+                win_buffer.append(0)
+        if len(win_buffer) == 20:
+            avg = sum(win_buffer) / len(win_buffer)
+            print(f"current winrate: {avg}")
 
         agent1.epsdecay()
 

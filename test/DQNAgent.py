@@ -95,6 +95,10 @@ class DQNAgent(BaseAgent):
         sstrength = int(sa[3].item())
         if blast_strength > sstrength:
             reward += 0.3
+        #reward_kick
+        skick = int(sa[4].item())
+        if can_kick and not skick:
+            reward += 0.3
         # reward_wood
         if int(action[0].item()) == 5:
             reward += 0.01
@@ -140,7 +144,7 @@ class DQNAgent(BaseAgent):
         position_bomb = np.array([position0,position1])
         m = position_bomb[0]
         n = position_bomb[1]
-        l = blast_strength
+        l = blast_strength - 1
         f = [l,l,l,l]       # Scope of flame: up down left right
         bomb_flame = np.zeros_like(rigid)
 
@@ -196,7 +200,10 @@ class DQNAgent(BaseAgent):
         print('l')
         print(l)
         print('bomb_flame')
-        print(bomb_flame)
+        '''
+        #print(bomb_flame)
+        #print(blast_strength)
+        '''
         print('num_wood')
         print(num_wood)
         print('-------------------------------------')
@@ -282,7 +289,7 @@ class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(9,32,2,stride=1,padding=1),
+            nn.Conv2d(13,32,2,stride=1,padding=1),
             nn.ReLU(),
             nn.Conv2d(32,64,3,stride=1,padding=1),
             nn.ReLU(),
