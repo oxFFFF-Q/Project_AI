@@ -67,10 +67,7 @@ class DQNAgent(BaseAgent):
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
-    def reward(self, featurel, featurea, action, sl, sa):
-        # set up reward
-        r_wood = 0.1
-
+    def reward(self, featurel, featurea, action, sl, sa, r_wood, r_plus_bomb, r_plus_flame, r_put_bomb):
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
         bomb = featurel[2]
@@ -88,15 +85,15 @@ class DQNAgent(BaseAgent):
         #sbombs = sl[2]
         # reward_ammo
         sammo = int(sa[2].item())
-        if ammo > 2 and ammo > sammo:
-            reward += 0.3
+        if ammo > 1 and ammo > sammo:
+            reward += r_plus_bomb
         #reward_strength
         sstrength = int(sa[3].item())
         if blast_strength > sstrength:
-            reward += 0.3
+            reward += r_plus_flame
         # reward_wood
         if int(action[0].item()) == 5:
-            reward += 0.01
+            reward += r_put_bomb
             bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
             num_wood = np.count_nonzero(wood*bomb_flame == 1)
             reward += num_wood*r_wood
@@ -203,6 +200,14 @@ class DQNAgent(BaseAgent):
         return bomb_flame
 
     def update(self, gamma, batch_size):
+        # set up reward
+        r_wood = 0.1
+        r_plus_bomb = 0.5
+        r_plus_flame = 0.5
+        r_put_bomb = 0.08
+        r_win = 1
+        r_fail = -5
+
         #每走十步学习一次
         if self.learn_step_counter % 10 == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
@@ -214,7 +219,7 @@ class DQNAgent(BaseAgent):
         #计算reward
         computed_reward = []
         for l, a, action, sl, sa in zip(next_statesl, next_statesa, actions, statesl, statesa):
-            computed_reward.append(self.reward(l, a, action[0], sl, sa))
+            computed_reward.append(self.reward(l, a, action[0], sl, sa, r_wood, r_plus_bomb, r_plus_flame, r_put_bomb))
         #这是得到的reward
         computed_reward = torch.tensor(computed_reward)
         action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
@@ -228,7 +233,9 @@ class DQNAgent(BaseAgent):
         rewards_batch = rewards.squeeze(-2)[:,0]
         for reward in rewards_batch:
             if reward == -1:
-                reward *= 10
+                reward *= -r_fail
+            if reward == 1:
+                reward *= r_win
         rewards_batch = rewards_batch + computed_reward
         #print(rewards_batch)
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
