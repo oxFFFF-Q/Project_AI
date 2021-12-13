@@ -93,19 +93,25 @@ def main():
             episode_rewards.append(episode_reward)
         '''
         if episode % args.showevery == 0:
-            print(f"Episode: {episode + 1:2d} finished, result: {'Win' if 0 in info.get('winners', []) else 'Lose'}")
+            if 0 in info.get('winners', []):
+                print(f"Episode: {episode + 1:2d} finished, result: Win")
+            elif not done:
+                print(f"Episode: {episode + 1:2d} finished, result: Not finish")
+            else:
+                print(f"Episode: {episode + 1:2d} finished, result: Lose")
             #print(f"Avg Episode Reward: {np.mean(episode_rewards)}")
         
         
-        if episode > args.tryepi:
-            if 0 in info.get('winners', []):
-                win_buffer.append(1)
-            else :
-                win_buffer.append(0)
+        #if episode > args.tryepi:
+        if 0 in info.get('winners', []):
+            win_buffer.append(1)
+        elif 1 in info.get('winners', []):
+            win_buffer.append(0)
         if len(win_buffer) == 20:
             avg = sum(win_buffer) / len(win_buffer)
             print(f"current winrate: {avg}")
-            print('epsilon',args.epsilon)
+        
+        print('epsilon',args.epsilon)
 
         agent1.epsdecay()
 
