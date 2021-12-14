@@ -70,15 +70,18 @@ class DQNAgent(BaseAgent):
     def reward(self, featurel, featurea, action, sl, sa, rewards):
         # set up reward
         r_wood = 0.1
-        r_powerup = 0.5
+        r_powerup = 0.3
         r_put_bomb = 0.08
         r_win = 1
         r_fail = -5
         r_kick = 0.3
+        r_kill_enemy_maybe = 0.5
+        r_dies = -3
+
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
         bomb = featurel[2].numpy()
-        agents = featurel[4]
+        agents = featurel[4].numpy()
         power_up = featurel[3]
         position0 = int(featurea[0].item())
         position1 = int(featurea[1].item())
@@ -150,9 +153,28 @@ class DQNAgent(BaseAgent):
                     reward -= 0.5
                 #print(bomb_flame1)
         """
-        # rewar_kick
+        # reward_kick
         if sbomb[position0, position1] == 1 and rewards != -1:
             reward += r_kick
+        '''
+        # reward_kill_enemy
+        enemy_position = []              #需要知道敌人位置
+        if int(action.item()) == 5:
+            bomb_position = np.array([position0,position1])
+            bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
+        if bomb_position in np.argwhere(bomb==1) and np.argwhere(enemy_position*bomb_flame == 1).size != 0:
+                reward += r_kill_enemy_maybe
+        '''
+
+        '''
+        # reward_dies
+        if is_alive == 0:
+            reward += r_dies
+        '''
+
+
+
+
         return reward
 
     def build_flame(self, position0, position1, rigid, blast_strength):
@@ -227,7 +249,7 @@ class DQNAgent(BaseAgent):
         return bomb_flame
 
     def update(self, gamma, batch_size):
-        
+
 
         #每走十步学习一次
         if self.learn_step_counter % 10 == 0:

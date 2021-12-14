@@ -21,16 +21,16 @@ def main():
     parser.add_argument('--showevery', type=int, default=1, help='report loss every n episodes')
 
     parser.add_argument('--epsilon', type=float, default=0.9, help='parameter for epsilon greedy')
-    parser.add_argument('--eps_decay', type=float, default=0.995, help='epsilon decay rate')
+    parser.add_argument('--eps_decay', type=float, default=0.999, help='epsilon decay rate')
     parser.add_argument('--min_eps', type=float, default=0.05, help='minimum epsilon for decaying')
     parser.add_argument('--gamma', type=float, default=0.95, help='gamma')
     parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
-    parser.add_argument('--tryepi', type=int, default=5, help='episode for agent to gain experience')
+    parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
-    parser.add_argument('--win_in_epi', type=int, default='20', help='calculate win in epi..')
+    parser.add_argument('--win_in_epi', type=int, default='100', help='calculate win in epi..')
     args = parser.parse_args()
 
     # GPU
@@ -63,11 +63,8 @@ def main():
                 env.render()
 
             # 选择action
-            if episode <= args.tryepi:
+            if (episode <= args.tryepi) or (args.epsilon > random.random()):
                 actions = env.act(states)
-            elif args.epsilon > random.random():
-                actions = env.act(states)
-                actions[0] = random.randrange(0,6,1)
             else:
                 actions = env.act(states)
                 dqn_action = agent1.dqnact(state_feature)
@@ -111,13 +108,13 @@ def main():
                 win_buffer.append(1)
             elif 1 in info.get('winners', []):
                 win_buffer.append(0)
-            if len(win_buffer) == 20:
+            if len(win_buffer) == args.win_in_epi:
                 avg = sum(win_buffer) / len(win_buffer)
                 print(f"current winrate: {avg}")
         
         print('epsilon',agent1.epsilon)
 
-        
+        # agent1.epsdecay()
 
     env.close()
 
