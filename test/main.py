@@ -31,12 +31,8 @@ def main():
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
     parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
-<<<<<<< HEAD
     parser.add_argument('--win_in_epi', type=int, default='50', help='calculate win in epi..')
     parser.add_argument('--ranepi', type=int, default='2000', help='agent go random action in epi..')
-=======
-    parser.add_argument('--win_in_epi', type=int, default='100', help='calculate win in epi..')
->>>>>>> e3ec287d94ec0f654e5fc489f6da7b26ff8ec7c7
     args = parser.parse_args()
 
     # GPU
@@ -78,14 +74,11 @@ def main():
             # 选择action
             if (episode <= args.tryepi) or (args.epsilon > random.random()):
                 actions = env.act(states)
-<<<<<<< HEAD
             elif episode <= args.ranepi and args.epsilon > random.random():
                 actions = env.act(states)
             elif args.epsilon > random.random():
                 actions = env.act(states)
                 actions[0] = random.randrange(0,6,1)
-=======
->>>>>>> e3ec287d94ec0f654e5fc489f6da7b26ff8ec7c7
             else:
                 actions = env.act(states)
                 dqn_action = agent1.dqnact(state_feature)
@@ -135,11 +128,7 @@ def main():
         
         print('epsilon',agent1.epsilon)
 
-<<<<<<< HEAD
     agent1.save_model()    #保存模型
-=======
-        # agent1.epsdecay()
->>>>>>> e3ec287d94ec0f654e5fc489f6da7b26ff8ec7c7
 
     env.close()
 
