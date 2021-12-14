@@ -10,6 +10,7 @@ from gym.spaces import Discrete
 from DQN_new import constants
 from replay_memory import replay_Memory
 import numpy as np
+import tensorflow as tf
 
 
 class DQNAgent(BaseAgent):
@@ -35,11 +36,11 @@ class DQNAgent(BaseAgent):
         input_shape = (constants.MINIBATCH_SIZE, 12, 8, 8)
         model.add(Conv2D(256, 3, input_shape=input_shape[1:], activation="relu"))
         # print(model.output_shape)
-        model.add(MaxPooling2D(pool_size=(2, 2), data_format='channels_first'))
+        model.add(MaxPooling2D(pool_size=(2, 2), data_format="channels_first"))
         model.add(Dropout(0.2))
 
         model.add(Conv2D(256, 2, activation="relu"))
-        model.add(MaxPooling2D(pool_size=(2, 2), data_format='channels_first'))
+        model.add(MaxPooling2D(pool_size=(2, 2), data_format="channels_first"))
         model.add(Dropout(0.2))
 
         model.add(Flatten())
@@ -71,7 +72,7 @@ class DQNAgent(BaseAgent):
 
         # X为state，Y为所预测的action
         X = []
-        y = []
+        Y = []
 
         for index, (current_state, action, reward, new_current_state, done) in enumerate(mini_batch):
 
@@ -88,11 +89,16 @@ class DQNAgent(BaseAgent):
             current_qs[action] = next_q
 
             # 添加训练数据
-            X.append(current_state)
-            y.append(current_qs)
+            X.append(np.array(current_state))
+            # X.append(tf.reshape(current_state,(-1,12,8,8)))
+            Y.append(np.array(current_qs))
 
-        # 开始训练
-        self.training_model.fit(np.array(X), np.array(y), batch_size=constants.MINIBATCH_SIZE, verbose=0, shuffle=False)
+            # 开始训练
+        # X = tf.reshape(X, (-1, 12, 8, 8))
+        # train_dataset = tf.data.Dataset.from_tensor_slices((X, Y))
+        # self.training_model.fit(train_dataset, verbose=0, shuffle=False)
+
+        self.training_model.fit(np.array(X), np.array(Y), batch_size=constants.MINIBATCH_SIZE, verbose=0, shuffle=False)
 
         # 更新网络更新计数器
         if done:
@@ -101,11 +107,11 @@ class DQNAgent(BaseAgent):
         # 网络更新计数器达到上限，更新网络
         if self.target_update_counter > constants.UPDATE_TARGET_EVERY:
             self.trained_model.set_weights(self.training_model.get_weights())
-            self.target_update_counter = 0
+        self.target_update_counter = 0
 
     def get_q_value(self, state):
-
-        return self.training_model.predict_on_batch(np.array(state).reshape(-1, 12, 8, 8))
+        state_reshape = np.array(state).reshape(-1, 12, 8, 8)
+        return self.training_model.predict_on_batch(state_reshape)
 
         # epsilon衰减
 

@@ -1,13 +1,10 @@
 import random
-import tensorflow as tf
+import constants
 import pommerman
 import numpy as np
-from DQN import constants
-#from DQN_new import DQNAgent
+
 from DQNAgent import DQNAgent
-#from pommerman.agents.simple_agent import SimpleAgent
 from pommerman.agents import SimpleAgent
-import constants
 from utility import featurize2D
 
 
@@ -56,7 +53,7 @@ def main():
             #     env.render()
 
             # 储存记忆
-            agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
+            agent1.buffer.append((state_feature, actions, reward, next_state_feature, done))
 
             # 学习!
             agent1.train(done)
