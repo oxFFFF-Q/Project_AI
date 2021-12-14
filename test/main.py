@@ -10,13 +10,14 @@ import collections
 from pommerman import agents
 from pommerman.configs import one_vs_one_env
 from DQNAgent import DQNAgent
-from utils import featurize, CustomEnvWrapper
+from utils import featurize
+import os
 
 
 def main():
     """解析参数"""
     parser = argparse.ArgumentParser(description='DQN pommerman MARL')
-    parser.add_argument('--episodes', type=int, default=10000, help='episodes')
+    parser.add_argument('--episodes', type=int, default=5000, help='episodes')
     parser.add_argument('--maxsteps', type=int, default=200, help='maximum steps')
     parser.add_argument('--showevery', type=int, default=1, help='report loss every n episodes')
 
@@ -28,9 +29,10 @@ def main():
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
-    parser.add_argument('--tryepi', type=int, default=5, help='episode for agent to gain experience')
+    parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
-    parser.add_argument('--win_in_epi', type=int, default='20', help='calculate win in epi..')
+    parser.add_argument('--win_in_epi', type=int, default='50', help='calculate win in epi..')
+    parser.add_argument('--ranepi', type=int, default='2000', help='agent go random action in epi..')
     args = parser.parse_args()
 
     # GPU
@@ -49,7 +51,14 @@ def main():
     #episode_rewards = []
     #action_n = env.action_space.n
 
+    # 加载模型
+    agent1.load_model()
     # collect win times
+    if os.path.exists('model_dqn.pt'):
+        args.tryepi = 0
+        args.ranepi = 0
+        args.epsilon = 0.2
+
     win_buffer = collections.deque(maxlen=args.win_in_epi)
     for episode in range(args.episodes):
         states = env.reset()
@@ -59,11 +68,13 @@ def main():
         for step in range(args.maxsteps):
             state_feature = featurize(env, states[0])
             # 刷新环境
-            if episode % 100 ==0 and episode != 0:
+            if episode % 100 == 0 and episode != 0:
                 env.render()
 
             # 选择action
             if episode <= args.tryepi:
+                actions = env.act(states)
+            elif episode <= args.ranepi and args.epsilon > random.random():
                 actions = env.act(states)
             elif args.epsilon > random.random():
                 actions = env.act(states)
@@ -83,7 +94,7 @@ def main():
             agent1.buffer.append([state_feature, actions[0], reward[0], next_state_feature, done])
             
             # 先走batch步之后再开始学习
-            if episode >= args.tryepi:
+            if episode >= args.tryepi and agent1.buffer.size() >= args.batch:
                 agent1.update(args.gamma, args.batch)
             
             # 更新state
@@ -111,13 +122,13 @@ def main():
                 win_buffer.append(1)
             elif 1 in info.get('winners', []):
                 win_buffer.append(0)
-            if len(win_buffer) == 20:
+            if len(win_buffer) == args.win_in_epi:
                 avg = sum(win_buffer) / len(win_buffer)
                 print(f"current winrate: {avg}")
         
         print('epsilon',agent1.epsilon)
 
-        
+    agent1.save_model()    #保存模型
 
     env.close()
 

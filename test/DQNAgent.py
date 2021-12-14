@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import random
 import numpy as np
 from utils import featurize
+import os
 
 from pommerman.agents import BaseAgent
 from replay_buffer import ReplayBuffer, ReplayBuffer2
@@ -271,10 +272,14 @@ class DQNAgent(BaseAgent):
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
 
-    def compute_reward(self, local, additional, epistep):
-        m = self.buffer.get(tuple(epistep.tolist()))
-
-        return 0
+    def save_model(self):
+        torch.save({'dqnNet': self.eval_net.state_dict()}, 'model_dqn.pt')
+    
+    def load_model(self):
+        if os.path.exists('model_dqn.pt'):
+            state_dict = torch.load('model_dqn.pt')
+            self.eval_net.load_state_dict(state_dict['dqnNet'])
+            self.target_net.load_state_dict(self.eval_net.state_dict())
 
 
 class Net1(nn.Module):
