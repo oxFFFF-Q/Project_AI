@@ -105,7 +105,7 @@ class DQNAgent(BaseAgent):
         if rewards == -1:
             reward += r_fail
 
-        # reward_[powerup
+        # reward_powerup
         sammo = int(sa[2].item())
         if ammo > 1 and ammo > sammo:
             reward += r_powerup
@@ -116,6 +116,7 @@ class DQNAgent(BaseAgent):
         if can_kick and not skick:
             reward += r_powerup
         #print(action)
+
         # reward_wood
         if int(action.item()) == 5:
             reward += r_put_bomb
@@ -267,6 +268,7 @@ class DQNAgent(BaseAgent):
         #这是得到的reward
         computed_reward = torch.tensor(computed_reward)
         #print(actions)
+
         action_index = actions.squeeze(-2)#.unsqueeze(1)
         curr_Q_batch = self.eval_net(statesl,statesa)#[:,0]
         #print(curr_Q_batch)
@@ -295,14 +297,14 @@ class DQNAgent(BaseAgent):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
 
     def save_model(self):
-        torch.save({'dqnNet': self.eval_net.state_dict()}, 'model_dqn.pt')
+        torch.save({'dqnNet': self.eval_net.state_dict(),'optimizer_state_dict': self.optim.state_dict()}, 'model_dqn.pt')
     
     def load_model(self):
         if os.path.exists('model_dqn.pt'):
             state_dict = torch.load('model_dqn.pt')
             self.eval_net.load_state_dict(state_dict['dqnNet'])
+            self.optim.load_state_dict(state_dict['optimizer_state_dict'])
             self.target_net.load_state_dict(self.eval_net.state_dict())
-
 
 class Net1(nn.Module):
     def __init__(self):
