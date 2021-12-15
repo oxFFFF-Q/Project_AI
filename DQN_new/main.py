@@ -56,7 +56,7 @@ def main():
             agent1.buffer.append((state_feature, actions, reward, next_state_feature, done))
 
             # 学习!
-            agent1.train(done)
+            agent1.train(done, episode)
 
             # 更新state
             current_state = new_state
@@ -83,6 +83,7 @@ def main():
             total_game = 0
 
         agent1.epsilon_decay()
+
 
     env.close()
 
