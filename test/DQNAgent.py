@@ -84,8 +84,8 @@ class DQNAgent(BaseAgent):
         bomb = featurel[2].numpy()
         agents = featurel[4].numpy()
         power_up = featurel[3]
-        position0 = int(featurea[0].item())
-        position1 = int(featurea[1].item())
+        position0 = int(featurea[0])
+        position1 = int(featurea[1])
         p0 = int(sa[0].item())
         p1 = int(sa[1].item())
         ammo = int(featurea[2].item())

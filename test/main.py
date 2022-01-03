@@ -53,7 +53,7 @@ def main():
     #action_n = env.action_space.n
 
     # 加载模型
-    agent1.load_model()
+    #agent1.load_model()
     # collect win times
     if os.path.exists('model_dqn.pt'):
         args.tryepi = 0
