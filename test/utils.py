@@ -324,8 +324,8 @@ def rebuild_board(board):
             else:
                 new_row.append(0.0)
         flame.append(new_row)
-    """
-    暂时用不到fog
+    
+    
     fog =[]
     for row in board:
         new_row = []
@@ -335,7 +335,7 @@ def rebuild_board(board):
             else:
                 new_row.append(0.0)
         fog.append(new_row)
-    """
+
     power_up = []
     for row in board:
         new_row = []
@@ -357,7 +357,7 @@ def rebuild_board(board):
                 new_row.append(0.0)
         agents.append(new_row)
 
-    return rigid, wood, bomb, power_up, agents
+    return rigid, wood, bomb, power_up, agents, fog, flame
 
 
 def featurize2(env, states):

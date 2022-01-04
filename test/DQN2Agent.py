@@ -9,6 +9,7 @@ import random
 import gym
 import numpy as np
 from utils import featurize, featurize2
+import os
 
 from pommerman.agents import BaseAgent
 from replay_buffer import ReplayBuffer, ReplayBuffer2
@@ -70,9 +71,16 @@ class DQN2Agent(BaseAgent):
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
-    def reward(self, featurel, featurea, action, sl, sa):
+    def reward(self, featurel, featurea, action, sl, sa, rewards):
         # set up reward
         r_wood = 0.1
+        r_powerup = 0.3
+        r_put_bomb = 0.08
+        r_win = 1
+        r_fail = -5
+        r_kick = 0.3
+        r_kill_enemy_maybe = 0.5
+        r_dies = -3
 
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
@@ -86,21 +94,29 @@ class DQN2Agent(BaseAgent):
         can_kick = int(featurea[4].item())
         teammate = int(featurea[5].item())
         enemies = int(featurea[6].item())
+        rewards = rewards.numpy()
         reward = 0
         #sagents = sl[4]
-        #sbombs = sl[2]
-        # reward_ammo
+        sbomb = sl[2].numpy()
+        # reward_done
+        #print(rewards)
+
+        if rewards == 1:
+            reward += r_win
+        if rewards == -1:
+            reward += r_fail
+
+        # reward_powerup
         sammo = int(sa[2].item())
-        if ammo > 2 and ammo > sammo:
-            reward += 0.3
-        #reward_strength
+        if ammo > 1 and ammo > sammo:
+            reward += r_powerup
         sstrength = int(sa[3].item())
         if blast_strength > sstrength:
-            reward += 0.3
-        #reward_kick
+            reward += r_powerup
         skick = int(sa[4].item())
         if can_kick and not skick:
-            reward += 0.3
+            reward += r_powerup
+
         # reward_wood
         if int(action[0].item()) == 5:
             reward += 0.01
@@ -139,6 +155,9 @@ class DQN2Agent(BaseAgent):
                     reward -= 0.5
                 #print(bomb_flame1)
         """
+        # reward_kick
+        if sbomb[position0, position1] == 1 and rewards != -1:
+            reward += r_kick
         return reward
 
     def build_flame(self, position0, position1, rigid, blast_strength):
@@ -215,11 +234,12 @@ class DQN2Agent(BaseAgent):
         self.learn_step_counter += 1
 
         statesl, statesa, actions, rewards, next_statesl, next_statesa, done = self.buffer.sample(batch_size)
+        #print(rewards)
         #print(actions)
-        #action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
+        action_index = actions.squeeze(-2)
         #print(action_index)
         curr_Q_batch = self.eval_net(statesl, statesa)#[:,0]
-        curr_Q = curr_Q_batch.gather(1, actions.type(torch.int64)).squeeze(-1)
+        curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
         #print(curr_Q)
         
         next_batch = self.target_net(next_statesl, next_statesa)#[:,0]
@@ -228,15 +248,12 @@ class DQN2Agent(BaseAgent):
 
         #计算reward
         computed_reward = []
-        for l, a, action, sl, sa in zip(next_statesl, next_statesa, actions, statesl, statesa):
-            computed_reward.append(self.reward(l, a, action, sl, sa))
+        for l, a, action, sl, sa, re in zip(next_statesl, next_statesa, actions, statesl, statesa, rewards):
+            computed_reward.append(self.reward(l, a, action, sl, sa, re))
         #这是得到的reward
         computed_reward = torch.tensor(computed_reward)
-        rewards_batch = rewards.squeeze(-2)
-        for reward in rewards_batch:
-            if reward == -1:
-                reward *= 10
-        rewards_batch = rewards_batch + computed_reward
+        
+        rewards_batch = computed_reward
         #print(rewards_batch)
 
 
@@ -255,6 +272,15 @@ class DQN2Agent(BaseAgent):
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
 
+    def save_model(self):
+        torch.save({'dqn2Net': self.eval_net.state_dict(),'optimizer2_state_dict': self.optim.state_dict()}, 'model_dqn2.pt')
+    
+    def load_model(self):
+        if os.path.exists('model_dqn2.pt'):
+            state_dict = torch.load('model_dqn.pt')
+            self.eval_net.load_state_dict(state_dict['dqn2Net'])
+            self.optim.load_state_dict(state_dict['optimizer2_state_dict'])
+            self.target_net.load_state_dict(self.eval_net.state_dict())
 
 class Net2(nn.Module):
     def __init__(self,env):
