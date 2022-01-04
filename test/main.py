@@ -12,7 +12,7 @@ from pommerman.configs import one_vs_one_env
 from DQNAgent import DQNAgent
 from utils import featurize
 import os
-
+from plot import plot_win_rate
 
 
 def main():
@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
     parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
-    parser.add_argument('--win_in_epi', type=int, default='50', help='calculate win in epi..')
+    parser.add_argument('--win_in_epi', type=int, default='500', help='calculate win in epi..')
     parser.add_argument('--ranepi', type=int, default='2000', help='agent go random action in epi..')
     args = parser.parse_args()
 
@@ -48,6 +48,9 @@ def main():
 
     agent_list = [agent1, agent2]
     env = pommerman.make('OneVsOne-v0', agent_list)
+
+    # plot
+    list_win = []
 
     #episode_rewards = []
     #action_n = env.action_space.n
@@ -126,11 +129,15 @@ def main():
             if len(win_buffer) == args.win_in_epi:
                 avg = sum(win_buffer) / len(win_buffer)
                 print(f"current winrate: {avg}")
+                list_win.append(avg)
+                if len(list_win)%1000 == 0:
+                    plot_win_rate(list_win)
 
 
 
 
-        print('epsilon',agent1.epsilon)
+
+        print('epsilon:',agent1.epsilon)
 
     agent1.save_model()    #保存模型
 

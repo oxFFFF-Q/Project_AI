@@ -73,22 +73,24 @@ class DQN2Agent(BaseAgent):
 
     def reward(self, featurel, featurea, action, sl, sa, rewards):
         # set up reward
-        r_wood = 0.1
-        r_powerup = 0.3
+        r_wood = 0.05
+        r_powerup = 0.2
         r_put_bomb = 0.08
-        r_win = 1
-        r_fail = -5
-        r_kick = 0.3
-        r_kill_enemy_maybe = 0.5
-        r_dies = -3
+        r_win = 0.5
+        r_fail = -1
+        r_kick = 0.2
+        r_hit = -0.2
 
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
-        bomb = featurel[2]
-        agents = featurel[4]
+        bomb = featurel[2].numpy()
+        agents = featurel[4].numpy()
         power_up = featurel[3]
+        flame = featurel[9]
         position0 = int(featurea[0].item())
         position1 = int(featurea[1].item())
+        p0 = int(sa[0].item())
+        p1 = int(sa[1].item())
         ammo = int(featurea[2].item())
         blast_strength = int(featurea[3].item())
         can_kick = int(featurea[4].item())
@@ -98,6 +100,8 @@ class DQN2Agent(BaseAgent):
         reward = 0
         #sagents = sl[4]
         sbomb = sl[2].numpy()
+        action = int(action.item())
+
         # reward_done
         #print(rewards)
 
@@ -118,27 +122,18 @@ class DQN2Agent(BaseAgent):
             reward += r_powerup
 
         # reward_wood
-        if int(action[0].item()) == 5:
+        if int(action) == 5:
             reward += 0.01
             bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
             num_wood = np.count_nonzero(wood*bomb_flame == 1)
             reward += num_wood*r_wood
-            '''
-            # test
-            print('rigid')
-            print(rigid)
-            print('position_bomb')
-            print(position_bomb)
-            print('f')
-            print(f)
-            print('l')
-            print(l)
-            print('bomb_flame')
-            print(bomb_flame)
-            print('num_wood')
-            print(num_wood)
-            print('-------------------------------------')
-            '''
+        # reward_kick
+        if sbomb[position0, position1] == 1 and rewards != -1:
+            reward += r_kick
+        # reward_hit_wood
+        if action>0 or action<5:
+            if (p0,p1) == (position0,position1):
+                reward += r_hit
         """
         exist_bomb = []
         for row, rowbomb in enumerate(bomb):
@@ -155,9 +150,7 @@ class DQN2Agent(BaseAgent):
                     reward -= 0.5
                 #print(bomb_flame1)
         """
-        # reward_kick
-        if sbomb[position0, position1] == 1 and rewards != -1:
-            reward += r_kick
+
         return reward
 
     def build_flame(self, position0, position1, rigid, blast_strength):
@@ -209,23 +202,7 @@ class DQN2Agent(BaseAgent):
                 f[3] = rigid_right - n - 1
         bomb_flame[m-f[0]:m+f[1]+1, n] = 1
         bomb_flame[m, n-f[2]:n+f[3]+1] = 1
-        
-        '''
-        # test
-        print('rigid')
-        print(rigid)
-        print('position_bomb')
-        print(position_bomb)
-        print('f')
-        print(f)
-        print('l')
-        print(l)
-        print('bomb_flame')
-        print(bomb_flame)
-        print('num_wood')
-        print(num_wood)
-        print('-------------------------------------')
-        '''
+
         return bomb_flame
 
     def update(self, gamma, batch_size):
@@ -264,7 +241,6 @@ class DQN2Agent(BaseAgent):
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
         loss = self.MSE_loss(curr_Q, expected_Q[0]) # TODO: try Huber Loss later too
-
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
@@ -286,7 +262,7 @@ class Net2(nn.Module):
     def __init__(self,env):
         super(Net2,self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(13,32,2,stride=1,padding=1),
+            nn.Conv2d(14,32,2,stride=1,padding=1),
             nn.ReLU(),
             nn.Conv2d(32,64,3,stride=1,padding=1),
             nn.ReLU(),

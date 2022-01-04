@@ -215,7 +215,7 @@ def rebuild_board2(board):
                 new_row.append(0.0)
         agent4.append(new_row)
 
-    return rigid, wood, bomb, power_up, fog, agent1, agent2, agent3, agent4
+    return rigid, wood, bomb, power_up, fog, agent1, agent2, agent3, agent4, flame
 
 def featurize(env, states):
     '''

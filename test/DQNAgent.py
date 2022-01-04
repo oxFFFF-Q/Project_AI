@@ -12,6 +12,7 @@ import os
 
 from pommerman.agents import BaseAgent
 from replay_buffer import ReplayBuffer, ReplayBuffer2
+from plot import plot_reward
 
 
 class DQNAgent(BaseAgent):
@@ -70,20 +71,20 @@ class DQNAgent(BaseAgent):
 
     def reward(self, featurel, featurea, action, sl, sa, rewards):
         # set up reward
-        r_wood = 0.1
-        r_powerup = 0.3
+        r_wood = 0.05
+        r_powerup = 0.2
         r_put_bomb = 0.08
-        r_win = 1
-        r_fail = -5
-        r_kick = 0.3
-        r_kill_enemy_maybe = 0.5
-        r_dies = -3
+        r_win = 0.5
+        r_fail = -1
+        r_kick = 0.2
+        r_hit = -0.2
 
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
         bomb = featurel[2].numpy()
         agents = featurel[4].numpy()
         power_up = featurel[3]
+        flame = featurel[9]
         position0 = int(featurea[0].item())
         position1 = int(featurea[1].item())
         p0 = int(sa[0].item())
@@ -97,6 +98,7 @@ class DQNAgent(BaseAgent):
         reward = 0
         #sagents = sl[4]
         sbomb = sl[2].numpy()
+        action = int(action.item())
 
         # reward_done
         #print(rewards)
@@ -118,27 +120,19 @@ class DQNAgent(BaseAgent):
         #print(action)
 
         # reward_wood
-        if int(action.item()) == 5:
+        if action == 5:
             reward += r_put_bomb
             bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
             num_wood = np.count_nonzero(wood*bomb_flame == 1)
             reward += num_wood*r_wood
-            '''
-            # test
-            print('rigid')
-            print(rigid)
-            print('position_bomb')
-            print(position_bomb)
-            print('f')
-            print(f)
-            print('l')
-            print(l)
-            print('bomb_flame')
-            print(bomb_flame)
-            print('num_wood')
-            print(num_wood)
-            print('-------------------------------------')
-            '''
+
+        # reward_kick
+        if sbomb[position0, position1] == 1 and rewards != -1:
+            reward += r_kick
+        # reward_hit_wood
+        if action>0 or action<5:
+            if (p0,p1) == (position0,position1):
+                reward += r_hit
         """
         exist_bomb = []
         for row, rowbomb in enumerate(bomb):
@@ -155,26 +149,6 @@ class DQNAgent(BaseAgent):
                     reward -= 0.5
                 #print(bomb_flame1)
         """
-        # reward_kick
-        if sbomb[position0, position1] == 1 and rewards != -1:
-            reward += r_kick
-        '''
-        # reward_kill_enemy
-        enemy_position = []              #需要知道敌人位置
-        if int(action.item()) == 5:
-            bomb_position = np.array([position0,position1])
-            bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
-        if bomb_position in np.argwhere(bomb==1) and np.argwhere(enemy_position*bomb_flame == 1).size != 0:
-                reward += r_kill_enemy_maybe
-        '''
-
-        '''
-        # reward_dies
-        if is_alive == 0:
-            reward += r_dies
-        '''
-
-
 
 
         return reward
@@ -228,52 +202,29 @@ class DQNAgent(BaseAgent):
                 f[3] = rigid_right - n - 1
         bomb_flame[m-f[0]:m+f[1]+1, n] = 1
         bomb_flame[m, n-f[2]:n+f[3]+1] = 1
-        
-        '''
-        # test
-        print('rigid')
-        print(rigid)
-        print('position_bomb')
-        print(position_bomb)
-        print('f')
-        print(f)
-        print('l')
-        print(l)
-        print('bomb_flame')
-        '''
-        #print(bomb_flame)
-        #print(blast_strength)
-        '''
-        print('num_wood')
-        print(num_wood)
-        print('-------------------------------------')
-        '''
+
         return bomb_flame
 
     def update(self, gamma, batch_size):
-
-
-        #每走十步学习一次
         if self.learn_step_counter % 10 == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learn_step_counter += 1
 
         statesl, statesa, actions, rewards, next_statesl, next_statesa, done = self.buffer.sample(batch_size)
         #print(epistep)
-        
         #计算reward
-        computed_reward = []
+        compute_reward = []
         for l, a, action, sl, sa, re in zip(next_statesl, next_statesa, actions, statesl, statesa, rewards):
-            computed_reward.append(self.reward(l, a, action, sl, sa, re))
+            compute_reward.append(self.reward(l, a, action, sl, sa, re))
         #这是得到的reward
-        computed_reward = torch.tensor(computed_reward)
+        computed_reward = torch.tensor(compute_reward)
         #print(actions)
 
         action_index = actions.squeeze(-2)#.unsqueeze(1)
         curr_Q_batch = self.eval_net(statesl,statesa)#[:,0]
         #print(curr_Q_batch)
         curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
-        #print(curr_Q)
+
         next_batch = self.target_net(next_statesl, next_statesa)#[:,0]
         next_Q = torch.max(next_batch,1)[0]
 
@@ -288,10 +239,10 @@ class DQNAgent(BaseAgent):
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
         loss = self.MSE_loss(curr_Q, expected_Q[0]) # TODO: try Huber Loss later too
-
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
+
 
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
@@ -308,24 +259,27 @@ class DQNAgent(BaseAgent):
 
 class Net1(nn.Module):
     def __init__(self):
+        # 初始化数组
         super(Net,self).__init__()
+        # 此步骤是官方要求
         """
         self.conv1=nn.Conv2d(199,16,2,stride=1,padding=1)
         self.conv2=nn.Conv2d(16,32,3,stride=1,padding=1)
         """
-        self.fc1 = nn.Linear(199,128)
+        self.fc1 = nn.Linear(199,128)   #设置输入层到隐藏层的函数
         self.fc1.weight.data.normal_(0, 0.1)
-        self.out = nn.Linear(128,6)
+        self.out = nn.Linear(128,6)     #设置隐藏层到输出层的函数
         self.out.weight.data.normal_(0, 0.1)
 
     def forward(self, x):
+        # 定义向前传播函数
         x = torch.FloatTensor(x)
         #x = torch.unsqueeze(x, dim=0).float()
         #x=self.conv1(x)
         #x=self.conv2(x)
         x = self.fc1(x)
-        x = F.relu(x)
-        out = self.out(x)
+        x = F.relu(x)  #给x加权成为a，用激励函数将a变成特征b
+        out = self.out(x)   #给b加权，预测最终结果
         return out
     
     
@@ -334,7 +288,7 @@ class Net(nn.Module):
     def __init__(self):
         super(Net,self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(13,32,2,stride=1,padding=1),
+            nn.Conv2d(14,32,2,stride=1,padding=1),
             nn.ReLU(),
             nn.Conv2d(32,64,3,stride=1,padding=1),
             nn.ReLU(),
@@ -375,3 +329,4 @@ class Net(nn.Module):
         out = self.fc(outx)
         return out
         
+
