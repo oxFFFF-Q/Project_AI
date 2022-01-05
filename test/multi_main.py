@@ -18,7 +18,7 @@ def main():
     """解析参数"""
     parser = argparse.ArgumentParser(description='DQN pommerman MARL')
     parser.add_argument('--episodes', type=int, default=3000, help='episodes')
-    parser.add_argument('--maxsteps', type=int, default=500, help='maximum steps')
+    parser.add_argument('--maxsteps', type=int, default=300, help='maximum steps')
     parser.add_argument('--showevery', type=int, default=1, help='report loss every n episodes')
 
     parser.add_argument('--epsilon', type=float, default=0.9, help='parameter for epsilon greedy')
@@ -31,8 +31,8 @@ def main():
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
     parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
-    parser.add_argument('--win_in_epi', type=int, default='500', help='calculate win in epi..')
-    parser.add_argument('--ranepi', type=int, default='2000', help='agent go random action in epi..')
+    parser.add_argument('--win_in_epi', type=int, default='200', help='calculate win in epi..')
+    parser.add_argument('--ranepi', type=int, default='1800', help='agent go random action in epi..')
     args = parser.parse_args()
 
     # GPU
