@@ -27,7 +27,7 @@ def plot_win_rate(list_win_rate):
     return plot(list_win_rate, 'Win rate', 'winrate.png')
 
 def plot_reward(list_reward):
-    return plot(list_reward, 'Reward', 'reward.png')
+    return plot(list_reward, 'Q-value', 'Q_value.png')
 
 
 if __name__ == '__main__':
