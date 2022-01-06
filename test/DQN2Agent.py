@@ -253,7 +253,7 @@ class DQN2Agent(BaseAgent):
     
     def load_model(self):
         if os.path.exists('model_dqn2.pt'):
-            state_dict = torch.load('model_dqn.pt')
+            state_dict = torch.load('model_dqn2.pt')
             self.eval_net.load_state_dict(state_dict['dqn2Net'])
             self.optim.load_state_dict(state_dict['optimizer2_state_dict'])
             self.target_net.load_state_dict(self.eval_net.state_dict())

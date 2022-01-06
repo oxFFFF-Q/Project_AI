@@ -79,29 +79,32 @@ def main():
             seed = random.random()
             # state_feature3 = featurize2(env, states[2])
             # 刷新环境
-            if episode > (args.episodes - 10):
-                env.render()
+            # if episode > (args.episodes - 10):
+            #     env.render()
+            # if episode % 100 == 0 and episode != 0:
+            #     env.render()
+            env.render()
             # 选择action
             if episode < args.tryepi:
-                print("simple try")
+                # print("simple try")
                 actions = env.act(states)
             elif episode < args.ranepi:
-                print("simple try")
+                # print("simple try")
                 actions = env.act(states)
             elif episode >= args.ranepi and args.epsilon > seed:
-                print("random try")
+                # print("random try")
                 actions = env.act(states)
                 actions[0] = random.randrange(0,6,1)
                 #actions[2] = random.randrange(0,6,1)
             elif episode >= args.ranepi and seed:
-                print("dqn select")
+                # print("dqn select")
                 actions = env.act(states)
                 dqn_action1 = agent1.dqnact(state_feature1)
                 # dqn_action3 = agent3.dqnact(state_feature3)
                 actions[0] = int(np.int64(dqn_action1))
                 #actions[2] = int(np.int64(dqn_action3))
-            else:
-                print("other")
+            # else:
+            #     print("other")
             
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
             next_state_feature1 = featurize2(env, next_state[0])
