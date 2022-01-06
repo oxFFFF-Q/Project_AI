@@ -2,7 +2,10 @@ import pandas as pd
 import pickle
 import numpy as np
 from keras.utils import to_categorical
-ss = np.load("pre_trained/FFA-Dataset-actions.npy", allow_pickle=True)
-ss=to_categorical(ss,6)
 
-print(ss)
+ss = np.array([[1, 2, 3],
+               [4, 5, 6],
+               [5, 6, 7]])
+
+
+print(np.argwhere(ss == 5))

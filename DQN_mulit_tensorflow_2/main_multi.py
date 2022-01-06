@@ -28,49 +28,55 @@ def main():
     result_to_csv = []
 
     agent1.load_weights()
+    total_numOfSteps = 0
+    episode = 5500
 
-    for episode in range(1, constants.EPISODES + 1):
+    while True:
 
         current_state = env.reset()
         # 将state 转化 1D array
         state_feature = featurize2D(current_state[0])
+
         episode_reward = 0
         numOfSteps = 0
-
+        episode += 1
         done = False
+
         while not done:
 
             numOfSteps += 1
+            total_numOfSteps += 1
 
-            if constants.epsilon > np.random.random():
+            if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
+            #if constants.epsilon > np.random.random():
                 # 获取动作
                 actions = env.act(current_state)
                 actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
             else:
                 # 随机动作
                 actions = env.act(current_state)
-                actions[0] = random.randint(0, 5)
+                # actions[0] = random.randint(0, 5)
 
-            new_state, reward, done, info = env.step(actions)
+            new_state, result, done, info = env.step(actions)
 
             if 10 not in new_state[0]["alive"]:
                 done = True
 
             # reward_shaping
-            reward = reward_shaping(current_state[0], new_state[0], actions[0], numOfSteps)
+            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0])
 
             next_state_feature = featurize2D(new_state[0])
             episode_reward += reward
 
             # 每一定局数显示游戏画面
-            # if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
-            env.render()
+            #if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
+            #env.render()
 
             # 储存记忆
-            #agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
+            agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
 
             # 学习!
-            #agent1.train()
+            agent1.train()
 
             # 更新state
             current_state = new_state
@@ -120,11 +126,7 @@ def main():
                     win_rate,
                     draw_rate))
 
-        if total_game >= 999:
-            win = 0
-            total_game = 0
-
-        #agent1.epsilon_decay()
+        # agent1.epsilon_decay()
 
         agent1.save_weights(episode)
 

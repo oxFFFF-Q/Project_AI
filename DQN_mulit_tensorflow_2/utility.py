@@ -3,17 +3,20 @@ import constants
 from pommerman import constants
 
 
-def reward_shaping(current_state, new_state, action, steps):
+def reward_shaping(current_state, new_state, action, result):
+    r_win = 1
+    r_lose = -1
 
-    r_wood = 0.3
-    r_powerup = 0.5
-    #r_put_bomb = 0.3
+    r_wood = 0.03
+    r_powerup = 0.05
+    # r_put_bomb = 0.3
     r_put_bomb = 0
-    r_put_bomb_near_enemy = 1
-    r_kick = 0.5
-    r_in_flame = -10
-    r_move = 0.02
-    r_stay = -0.04
+    r_put_bomb_near_enemy = 0.05
+    r_kick = 0.02
+
+    r_get_away_from_bomb = 0.003
+    r_move = 0.004
+    r_stay = -0.002
 
     reward = 0
 
@@ -26,13 +29,16 @@ def reward_shaping(current_state, new_state, action, steps):
     # if steps == constants.MAX_STEPS + 1:
     #     return reward
 
+    if result == 1:
+        reward += r_win
+
     # 检查是否踢了炸弹
     if current_state["can_kick"] is True and new_state["can_kick"] is False:
         reward += r_kick
 
     if action == 0:
         reward += r_stay
-        reward = check_in_flame(current_state, new_state, reward, r_in_flame)
+        reward = check_in_flame(current_state, new_state, reward, r_lose)
         return reward
 
     # 移动reward
@@ -47,7 +53,8 @@ def reward_shaping(current_state, new_state, action, steps):
             if current_state["board"][X][Y - 1] == 6 or current_state["board"][X][Y - 1] == 7 or \
                     current_state["board"][X][Y - 1] == 8:
                 reward += r_powerup
-        reward = check_in_flame(current_state, new_state, reward, r_in_flame)
+        reward = check_in_flame(current_state, new_state, reward, r_lose)
+        #reward = check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_away_from_bomb)
         return reward
 
     if action == 2:
@@ -61,7 +68,8 @@ def reward_shaping(current_state, new_state, action, steps):
             if current_state["board"][X][Y + 1] == 6 or current_state["board"][X][Y + 1] == 7 or \
                     current_state["board"][X][Y + 1] == 8:
                 reward += r_powerup
-        reward = check_in_flame(current_state, new_state, reward, r_in_flame)
+        reward = check_in_flame(current_state, new_state, reward, r_lose)
+        #reward = check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_away_from_bomb)
         return reward
 
     if action == 3:
@@ -75,7 +83,8 @@ def reward_shaping(current_state, new_state, action, steps):
             if current_state["board"][X - 1][Y] == 6 or current_state["board"][X - 1][Y] == 7 or \
                     current_state["board"][X - 1][Y] == 8:
                 reward += r_powerup
-        reward = check_in_flame(current_state, new_state, reward, r_in_flame)
+        reward = check_in_flame(current_state, new_state, reward, r_lose)
+        #reward = check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_away_from_bomb)
         return reward
 
     if action == 4:
@@ -89,14 +98,15 @@ def reward_shaping(current_state, new_state, action, steps):
             if current_state["board"][X + 1][Y] == 6 or current_state["board"][X + 1][Y] == 7 or \
                     current_state["board"][X + 1][Y] == 8:
                 reward += r_powerup
-        reward = check_in_flame(current_state, new_state, reward, r_in_flame)
+        reward = check_in_flame(current_state, new_state, reward, r_lose)
+        #reward = check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_away_from_bomb)
         return reward
 
     # 放炸弹reward，包括检查wood， 敌人等
     if action == 5:
 
         blast_strength = current_state["blast_strength"]
-        reward = check_in_flame(current_state, new_state, reward, r_in_flame)
+        reward = check_in_flame(current_state, new_state, reward, r_lose)
 
         if current_state["ammo"] != 0:
             reward += r_put_bomb
@@ -190,9 +200,20 @@ def check_in_flame(current_state, new_state, reward, r_in_flame):
     return reward
 
 
+def check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_away_from_bomb):
+    bomb = np.argwhere(current_state["board"] == 3)
+    if len(bomb) > 0:
+        for i in range(len(bomb)):
+            distance_current = abs(X - bomb[i][0]) + abs(Y - bomb[i][1])
+            distance_new = abs(new_X - bomb[i][0]) + abs(new_Y - bomb[i][1])
+            if distance_current <= 2 and (distance_new - distance_current) > 0:
+                reward += r_get_away_from_bomb
+    return reward
+
+
 def featurize2D(states):
     feature2D = []
-    # 共14个矩阵
+    # 共18个矩阵
     for board in rebuild_board(states["board"]):
         feature2D.append(board)
 
@@ -201,11 +222,27 @@ def featurize2D(states):
     feature2D.append(states["bomb_moving_direction"].tolist())
     feature2D.append(states["flame_life"].tolist())
 
-    return feature2D
+    ammo_2D, blast_strength_2D, can_kick_2D = rebuild_1D_element(states)
+
+    feature2D.append(ammo_2D)
+    feature2D.append(blast_strength_2D)
+    feature2D.append(can_kick_2D)
+
+    return np.array(feature2D)
 
 
 def rebuild_board(board):
     # 将board中数据分离，2D化
+    path = []
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 0:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        path.append(new_row)
+
     rigid = []
     for row in board:
         new_row = []
@@ -324,4 +361,17 @@ def rebuild_board(board):
                 new_row.append(0.0)
         agent4.append(new_row)
 
-    return rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
+    return path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
+
+
+def rebuild_1D_element(states):
+    ammo = states["ammo"]
+    ammo_2D = np.full((11, 11), ammo)
+
+    blast_strength = states["blast_strength"]
+    blast_strength_2D = np.full((11, 11), blast_strength)
+
+    can_kick = states["can_kick"]
+    can_kick_2D = np.full((11, 11), int(can_kick))
+
+    return ammo_2D, blast_strength_2D, can_kick_2D

@@ -34,15 +34,15 @@ class DQNAgent(BaseAgent):
     def new_model(self):
 
         model = Sequential()
-        input_shape = (constants.MINIBATCH_SIZE, 14, 11, 11,)
-        model.add(Conv2D(64, 2, input_shape=input_shape[1:], activation="relu", data_format="channels_first"))
-        print(model.output_shape)
+        input_shape = (constants.MINIBATCH_SIZE, 18, 11, 11,)
+        model.add(Conv2D(32, 2, input_shape=input_shape[1:], activation="relu", data_format="channels_first"))
+        #print(model.output_shape)
         # model.add(MaxPooling2D(pool_size=(3, 3), data_format="channels_first"))
         model.add(Conv2D(64, 2, activation="relu", data_format="channels_first"))
-        print(model.output_shape)
+        #print(model.output_shape)
         # model.add(MaxPooling2D(pool_size=(2, 2), data_format="channels_first"))
-        model.add(Conv2D(64, 2, activation="relu", data_format="channels_first"))
-        print(model.output_shape)
+        model.add(Conv2D(128, 2, activation="relu", data_format="channels_first"))
+        #print(model.output_shape)
 
         model.add(Flatten())
         model.add(Dense(512, activation="relu"))
@@ -105,7 +105,7 @@ class DQNAgent(BaseAgent):
             self.update_counter = 0
 
     def action_choose(self, state):
-        state_reshape = tf.reshape(state, (-1, 14, 11, 11))
+        state_reshape = tf.reshape(state, (-1, 18, 11, 11))
         return self.training_model.predict_on_batch(state_reshape)
 
         # epsilon衰减
@@ -115,20 +115,11 @@ class DQNAgent(BaseAgent):
 
     def save_weights(self, numOfEpisode):
 
-        # if numOfEpisode % 999 == 0:
-        #     checkpoint_path = "/checkpoints/training1/cp.ckpt"
-        #     checkpoint_dir = os.path.dirname(checkpoint_path)
-        #
-        #     # 检查点重用
-        #     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-        #                                                      save_weights_only=True,
-        #                                                      verbose=1)
-        #
         # 完成训练后存档参数
         if numOfEpisode % 500 == 0:
             self.training_model.save_weights(('./checkpoints/FFA{:}/FFA{:}'.format(numOfEpisode, numOfEpisode)))
 
     def load_weights(self):
-        self.training_model.load_weights('./checkpoints/pre-train/pre-train')
-        self.trained_model.load_weights('./checkpoints/pre-train/pre-train')
+        self.training_model.load_weights('./checkpoints/FFA5500/FFA5500')
+        self.trained_model.load_weights('./checkpoints/FFA5500/FFA5500')
         print("weights loaded!")
