@@ -123,12 +123,10 @@ def main():
             states = next_state
 
             if done:
-                print(reward)
                 break
 
             # agent die -> game over
             if 10 not in next_state[0]['alive']:
-                print(reward)
                 break
 
         #if done:
