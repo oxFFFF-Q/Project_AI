@@ -29,10 +29,10 @@ def main():
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
-    parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
+    parser.add_argument('--tryepi', type=int, default=4, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
     parser.add_argument('--win_in_epi', type=int, default='200', help='calculate win in epi..')
-    parser.add_argument('--ranepi', type=int, default='1800', help='agent go random action in epi..')
+    parser.add_argument('--ranepi', type=int, default='2000', help='agent go random action in epi..')
     args = parser.parse_args()
 
     # GPU
@@ -79,11 +79,9 @@ def main():
             seed = random.random()
             # state_feature3 = featurize2(env, states[2])
             # 刷新环境
-            # if episode > (args.episodes - 10):
-            #     env.render()
-            # if episode % 100 == 0 and episode != 0:
-            #     env.render()
-            env.render()
+            if episode % 100 == 0 and episode != 0:
+                env.render()
+            #env.render()
             # 选择action
             if episode < args.tryepi:
                 # print("simple try")
@@ -92,12 +90,12 @@ def main():
                 # print("simple try")
                 actions = env.act(states)
             elif episode >= args.ranepi and args.epsilon > seed:
-                # print("random try")
+                #print("random try")
                 actions = env.act(states)
                 actions[0] = random.randrange(0,6,1)
                 #actions[2] = random.randrange(0,6,1)
-            elif episode >= args.ranepi and seed:
-                # print("dqn select")
+            elif episode >= args.ranepi and args.epsilon <= seed:
+                #print("dqn select")
                 actions = env.act(states)
                 dqn_action1 = agent1.dqnact(state_feature1)
                 # dqn_action3 = agent3.dqnact(state_feature3)
@@ -107,6 +105,9 @@ def main():
             #     print("other")
             
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
+            if 10 not in next_state[0]['alive']:
+                info['winners'] = [1, 3]
+                reward = [-1, 1, -1, 1]
             next_state_feature1 = featurize2(env, next_state[0])
             # next_state_feature3 = featurize2(env, next_state[2])
             #episode_reward += reward[0]
@@ -121,11 +122,13 @@ def main():
             # 更新state
             states = next_state
 
+            if done:
+                print(reward)
+                break
+
             # agent die -> game over
             if 10 not in next_state[0]['alive']:
-                done = True
-
-            if done:
+                print(reward)
                 break
 
         #if done:
@@ -133,14 +136,13 @@ def main():
         if episode % args.showevery == 0:
             if 0 in info.get('winners', []):
                 print(f"Episode: {episode + 1:2d} finished, result: Win")
-            elif not done:
-                print(f"Episode: {episode + 1:2d} finished, result: Not finish")
-            else:
+            elif 1 in info.get('winners', []):
                 print(f"Episode: {episode + 1:2d} finished, result: Lose")
+            else:
+                print(f"Episode: {episode + 1:2d} finished, result: Not finish")
             #print(f"Avg Episode Reward: {np.mean(episode_rewards)}")
         
-        
-        if episode > args.tryepi:
+        if episode > args.win_in_epi:
             agent1.epsdecay()
             if 0 in info.get('winners', []):
                 win_buffer.append(1)
@@ -150,8 +152,8 @@ def main():
                 avg = sum(win_buffer) / len(win_buffer)
                 print(f"current winrate: {avg}")
                 list_win.append(avg)
-                if len(list_win) % 500 == 0:
-                    plot_win_rate(list_win)
+                #if len(list_win) % 10 == 0:
+                #    plot_win_rate(list_win)
 
         agent1.epsdecay()
         # agent3.epsdecay()

@@ -390,7 +390,6 @@ def featurize2(env, states):
     can_kick = utility.make_np_float([states["can_kick"]])
     teammate = utility.make_np_float([states["teammate"].value])
     enemies = utility.make_np_float([e.value for e in states["enemies"]])
-    additional = np.concatenate((position, ammo, blast_strength, can_kick, teammate, enemies))
     message = states['message']
     message = utility.make_np_float(message)
     additional = np.concatenate(

@@ -96,6 +96,7 @@ class DQN2Agent(BaseAgent):
         can_kick = int(featurea[4].item())
         teammate = int(featurea[5].item())
         enemies = int(featurea[6].item())
+        message = int(featurea[7].item())
         rewards = rewards.numpy()
         reward = 0
         #sagents = sl[4]
