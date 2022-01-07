@@ -31,7 +31,7 @@ def main():
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
-    parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
+    parser.add_argument('--tryepi', type=int, default=500, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
     parser.add_argument('--win_in_epi', type=int, default='200', help='calculate win in epi..')
     parser.add_argument('--ranepi', type=int, default='1000', help='agent go random action in epi..')
@@ -85,15 +85,25 @@ def main():
             state_feature1 = featurize2(env, states[0])
             #state_feature3 = featurize2(env, states[2])
             seed = random.random()
+            print(seed)
             # state_feature3 = featurize2(env, states[2])
             # 刷新环境
             # if episode % 100 == 0 and episode != 0:
             #     env.render()
-            # env.render()
+            #env.render()
             # 选择action
             if episode < args.tryepi:       # epi < 4
                 # print("simple try")
                 actions = env.act(states)
+            else:
+                if args.epsilon > seed:
+                    actions = env.act(states)
+                else:
+                    actions = env.act(states)
+                    dqn_action1 = agent1.dqnact(state_feature1)
+                    actions[0] = int(np.int64(dqn_action1))
+                
+            """
             elif episode < args.ranepi:     # epi < 3000
                 # print("simple try")
                 actions = env.act(states)
@@ -110,8 +120,8 @@ def main():
                 # dqn_action3 = agent3.dqnact(state_feature3)
                 actions[0] = int(np.int64(dqn_action1))
                 #actions[2] = int(np.int64(dqn_action3))
-            # # else:
-            # #     print("other")
+            """
+            
             # actions = env.act(states)
 
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
@@ -125,7 +135,7 @@ def main():
             agent1.buffer.append([state_feature1, actions[0], reward[0], next_state_feature1, done])
             # agent3.buffer.append([state_feature3, actions[2], reward[2], next_state_feature3, done])
             # 先走batch步之后再开始学习
-            if episode > args.tryepi and agent1.buffer.size() >= args.batch:
+            if agent1.buffer.size() >= args.batch and episode > 50: 
                 agent1.update(args.gamma, args.batch)
             # if episode > args.tryepi and agent1.buffer.size() >= args.batch:
             #     agent3.update(args.gamma, args.batch)
