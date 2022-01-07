@@ -84,8 +84,12 @@ class DQN2Agent(BaseAgent):
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
         bomb = featurel[2].numpy()
-        agents = featurel[4].numpy()
         power_up = featurel[3]
+        fog = featurel[4]
+        agent1 = featurel[5].numpy()
+        agent2 = featurel[6].numpy()
+        agent3 = featurel[7].numpy()
+        agent4 = featurel[8].numpy()
         flame = featurel[9]
         position0 = int(featurea[0].item())
         position1 = int(featurea[1].item())
@@ -103,8 +107,16 @@ class DQN2Agent(BaseAgent):
         sbomb = sl[2].numpy()
         action = int(action.item())
 
-        # reward_done
-        #print(rewards)
+
+
+        # print(agent1)
+        # print(p0, p1)
+        # print(position0, position1)
+        # print('len:', len(agent1))
+        # print('shape:', agent1.shape)
+        # print('-------------------')
+        # # reward_done
+        # # print(rewards)
 
         if rewards == 1:
             reward += r_win
@@ -135,6 +147,8 @@ class DQN2Agent(BaseAgent):
         if action>0 or action<5:
             if (p0,p1) == (position0,position1):
                 reward += r_hit
+        # reward_die
+
         """
         exist_bomb = []
         for row, rowbomb in enumerate(bomb):
@@ -151,7 +165,6 @@ class DQN2Agent(BaseAgent):
                     reward -= 0.5
                 #print(bomb_flame1)
         """
-
         return reward
 
     def build_flame(self, position0, position1, rigid, blast_strength):
@@ -228,6 +241,8 @@ class DQN2Agent(BaseAgent):
         computed_reward = []
         for l, a, action, sl, sa, re in zip(next_statesl, next_statesa, actions, statesl, statesa, rewards):
             computed_reward.append(self.reward(l, a, action, sl, sa, re))
+
+
         #这是得到的reward
         computed_reward = torch.tensor(computed_reward)
         

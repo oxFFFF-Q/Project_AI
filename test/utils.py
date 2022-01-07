@@ -87,7 +87,7 @@ class CustomEnvWrapper(Pomme):
                         pos = np.array(d.get('position'))
                         view_range = 2 * self._agent_view_size + 1
                         v = v[pos[0]:pos[0] + view_range,
-                              pos[1]:pos[1] + view_range]
+                            pos[1]:pos[1] + view_range]
 
                     locational.append(v)
 
@@ -104,6 +104,7 @@ class CustomEnvWrapper(Pomme):
             out.append(custom_obs)
 
         return out
+
 
 def rebuild_board2(board):
     # 将board中数据分离，2D化
@@ -146,9 +147,9 @@ def rebuild_board2(board):
             else:
                 new_row.append(0.0)
         flame.append(new_row)
-    
+
     # 暂时用不到fog
-    fog =[]
+    fog = []
     for row in board:
         new_row = []
         for num in row:
@@ -157,7 +158,7 @@ def rebuild_board2(board):
             else:
                 new_row.append(0.0)
         fog.append(new_row)
-    
+
     power_up = []
     for row in board:
         new_row = []
@@ -169,17 +170,6 @@ def rebuild_board2(board):
         power_up.append(new_row)
 
     agent1 = []
-    # 如果是9为此处为agent,则取1.0
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 9:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        agent1.append(new_row)
-
-    agent2 = []
     # 如果是10为此处为agent,则取1.0
     for row in board:
         new_row = []
@@ -188,12 +178,9 @@ def rebuild_board2(board):
                 new_row.append(1.0)
             else:
                 new_row.append(0.0)
-        agent2.append(new_row)
+        agent1.append(new_row)
 
-    agent3 = []
-    # 如果是11为此处为agent,则取1.0
-    for row in board:
-     agent3 = []
+    agent2 = []
     # 如果是11为此处为agent,则取1.0
     for row in board:
         new_row = []
@@ -202,9 +189,9 @@ def rebuild_board2(board):
                 new_row.append(1.0)
             else:
                 new_row.append(0.0)
-        agent3.append(new_row)
+        agent2.append(new_row)
 
-    agent4 = []
+    agent3 = []
     # 如果是12为此处为agent,则取1.0
     for row in board:
         new_row = []
@@ -213,9 +200,21 @@ def rebuild_board2(board):
                 new_row.append(1.0)
             else:
                 new_row.append(0.0)
+        agent3.append(new_row)
+
+    agent4 = []
+    # 如果是13为此处为agent,则取1.0
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 13:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
         agent4.append(new_row)
 
     return rigid, wood, bomb, power_up, fog, agent1, agent2, agent3, agent4, flame
+
 
 def featurize(env, states):
     '''
@@ -227,10 +226,10 @@ def featurize(env, states):
     Output:
     - feature: list[num_agents, 372]
     '''
-    
-    #length = len(env.featurize(states[0]).tolist())
-    #list = env.featurize(states[0]).tolist()
-    #states = states[0]
+
+    # length = len(env.featurize(states[0]).tolist())
+    # list = env.featurize(states[0]).tolist()
+    # states = states[0]
     local = featurize2D(states)
     """
     board = states["board"].reshape(-1).astype(np.float32)
@@ -247,12 +246,12 @@ def featurize(env, states):
     feature = {'local': local}
     additional = []
     position = utility.make_np_float(states["position"])
-    ammo = utility.make_np_float([states["ammo"]])  #fff
+    ammo = utility.make_np_float([states["ammo"]])  # fff
     blast_strength = utility.make_np_float([states["blast_strength"]])
     can_kick = utility.make_np_float([states["can_kick"]])
     teammate = utility.make_np_float([states["teammate"].value])
     enemies = utility.make_np_float([e.value for e in states["enemies"]])
-    #print(position, ammo, blast_strength, can_kick, teammate, enemies)
+    # print(position, ammo, blast_strength, can_kick, teammate, enemies)
     """
     additional.append(position.tolist())
     additional.append(ammo.tolist())
@@ -261,18 +260,19 @@ def featurize(env, states):
     additional.append(teammate.tolist())
     additional.append(enemies.tolist())
     """
-    #print(additional)
-    #position占两个数，所以你要取ammo的话就要取additional[2]
+    # print(additional)
+    # position占两个数，所以你要取ammo的话就要取additional[2]
     additional = np.concatenate(
-            (position, ammo,
-             blast_strength, can_kick, teammate, enemies))
+        (position, ammo,
+         blast_strength, can_kick, teammate, enemies))
 
     feature['additional'] = additional.tolist()
     return feature
 
+
 def featurize2D(states):
     feature2D = []
-    # 共9个矩阵
+    # 共10个矩阵
     for board in rebuild_board2(states["board"]):
         feature2D.append(board)
 
@@ -282,6 +282,7 @@ def featurize2D(states):
     feature2D.append(states["flame_life"].tolist())
 
     return feature2D
+
 
 def rebuild_board(board):
     # 将board中数据分离，2D化
@@ -324,9 +325,8 @@ def rebuild_board(board):
             else:
                 new_row.append(0.0)
         flame.append(new_row)
-    
-    
-    fog =[]
+
+    fog = []
     for row in board:
         new_row = []
         for num in row:
@@ -357,7 +357,7 @@ def rebuild_board(board):
                 new_row.append(0.0)
         agents.append(new_row)
 
-    return rigid, wood, bomb, power_up, agents, fog, flame
+    return rigid, wood, bomb, power_up, fog, agents, flame
 
 
 def featurize2(env, states):
@@ -367,7 +367,7 @@ def featurize2(env, states):
         feature.append((env.featurize(state)).tolist())
     """
     local = []
-    #print(states)
+    # print(states)
     '''
     board = states["board"].reshape(-1).astype(np.float32)
     bomb_blast_strength = states["bomb_blast_strength"].reshape(-1).astype(np.float32)
@@ -393,8 +393,10 @@ def featurize2(env, states):
     message = states['message']
     message = utility.make_np_float(message)
     additional = np.concatenate(
-            (position, ammo,
-             blast_strength, can_kick, teammate, enemies, message))
+        (position, ammo,
+         blast_strength, can_kick, teammate, enemies, message))
 
     feature['additional'] = additional.tolist()
+
+    # feature['alive'] = states['alive']
     return feature
