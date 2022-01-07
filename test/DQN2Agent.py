@@ -242,6 +242,7 @@ class DQN2Agent(BaseAgent):
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
         loss = self.MSE_loss(curr_Q, expected_Q[0]) # TODO: try Huber Loss later too
+        # print('loss:', loss)
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
