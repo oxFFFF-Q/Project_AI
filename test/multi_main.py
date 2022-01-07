@@ -17,22 +17,24 @@ from plot import plot_win_rate
 def main():
     """解析参数"""
     parser = argparse.ArgumentParser(description='DQN pommerman MARL')
-    parser.add_argument('--episodes', type=int, default=3000, help='episodes')
+    parser.add_argument('--episodes', type=int, default=2000, help='episodes')
     parser.add_argument('--maxsteps', type=int, default=200, help='maximum steps')
     parser.add_argument('--showevery', type=int, default=1, help='report loss every n episodes')
 
     parser.add_argument('--epsilon', type=float, default=0.9, help='parameter for epsilon greedy')
-    parser.add_argument('--eps_decay', type=float, default=1, help='epsilon decay rate')
+    parser.add_argument('--eps_decay', type=float, default=0.98, help='epsilon decay rate')
     parser.add_argument('--min_eps', type=float, default=0.05, help='minimum epsilon for decaying')
     parser.add_argument('--gamma', type=float, default=0.95, help='gamma')
     parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+    # parser.add_argument('--lr_decay', type=float, default=0.99, help='learning rate decay rate')
+    # parser.add_argument('--lr_decay_s', type=float, default=100, help='learning rate decay rate setp size')
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
     parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
     parser.add_argument('--win_in_epi', type=int, default='200', help='calculate win in epi..')
-    parser.add_argument('--ranepi', type=int, default='50', help='agent go random action in epi..')
+    parser.add_argument('--ranepi', type=int, default='1000', help='agent go random action in epi..')
     args = parser.parse_args()
 
     # GPU
@@ -63,14 +65,20 @@ def main():
     # agent3.load_model()
     # collect win times
     if os.path.exists('model_dqn2.pt'):
-        args.tryepi = 0
-        args.ranepi = 0
         args.epsilon = 0.1
+        args.eps_decay = 0.98
+        args.tryepi = 50
+        args.ranepi = 50
+
 
     win_buffer = collections.deque(maxlen=args.win_in_epi)
     for episode in range(args.episodes):
+        # 固定地图
+        random.seed(1)
+        np.random.seed(1)
+
         states = env.reset()  
-        
+        # print('epi:', episode)
         done = False
         episode_reward = 0
         for step in range(args.maxsteps):
@@ -83,28 +91,28 @@ def main():
             #     env.render()
             # env.render()
             # 选择action
-            # if episode < args.tryepi:       # epi < 4
-            #     # print("simple try")
-            #     actions = env.act(states)
-            # elif episode < args.ranepi:     # epi < 3000
-            #     # print("simple try")
-            #     actions = env.act(states)
-            # # elif episode >= args.ranepi and args.epsilon > seed:
+            if episode < args.tryepi:       # epi < 4
+                # print("simple try")
+                actions = env.act(states)
+            elif episode < args.ranepi:     # epi < 3000
+                # print("simple try")
+                actions = env.act(states)
+            elif episode >= args.ranepi and args.epsilon > seed:
             # elif episode >= args.ranepi:    # epi >= 3000 a
-            #     #print("random try")
-            #     actions = env.act(states)
-            #     actions[0] = random.randrange(0,6,1)
-            #     #actions[2] = random.randrange(0,6,1)
-            # elif episode >= args.ranepi and args.epsilon <= seed:  # epi >= 3000 and eps <= random.random
-            #     #print("dqn select")
-            #     actions = env.act(states)
-            #     dqn_action1 = agent1.dqnact(state_feature1)
-            #     # dqn_action3 = agent3.dqnact(state_feature3)
-            #     actions[0] = int(np.int64(dqn_action1))
-            #     #actions[2] = int(np.int64(dqn_action3))
+                #print("random try")
+                actions = env.act(states)
+                actions[0] = random.randrange(0,6,1)
+                #actions[2] = random.randrange(0,6,1)
+            elif episode >= args.ranepi and args.epsilon <= seed:  # epi >= 3000 and eps <= random.random
+                #print("dqn select")
+                actions = env.act(states)
+                dqn_action1 = agent1.dqnact(state_feature1)
+                # dqn_action3 = agent3.dqnact(state_feature3)
+                actions[0] = int(np.int64(dqn_action1))
+                #actions[2] = int(np.int64(dqn_action3))
             # # else:
             # #     print("other")
-            actions = env.act(states)
+            # actions = env.act(states)
 
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
             if 10 not in next_state[0]['alive']:

@@ -250,6 +250,10 @@ class DQN2Agent(BaseAgent):
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
 
+    # def lrdecay(self,epi):
+    #     epi = self.epi
+    #     self.lr = self.lr * self.lr_decay ** (epi) if s
+
     def save_model(self):
         torch.save({'dqn2Net': self.eval_net.state_dict(),'optimizer2_state_dict': self.optim.state_dict()}, 'model_dqn2.pt')
     
