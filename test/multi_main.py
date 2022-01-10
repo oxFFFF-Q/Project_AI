@@ -25,7 +25,7 @@ def main():
     parser.add_argument('--eps_decay', type=float, default=0.9999, help='epsilon decay rate')
     parser.add_argument('--min_eps', type=float, default=0.05, help='minimum epsilon for decaying')
     parser.add_argument('--gamma', type=float, default=0.95, help='gamma')
-    parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+    parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
     parser.add_argument('--lr_decay', type=float, default=0.99, help='learning rate decay rate')
     parser.add_argument('--lr_decay_s', type=float, default=100, help='learning rate decay rate setp size')
 
@@ -63,18 +63,18 @@ def main():
     agent1.load_model()
     # agent3.load_model()
     # collect win times
-    if os.path.exists('model_dqn2.pt'):
-        args.epsilon = 0.1
-        args.eps_decay = 0.98
-        args.tryepi = 0
-        args.ranepi = 0
+    # if os.path.exists('model_dqn2.pt'):
+    #     args.epsilon = 0.1
+    #     args.eps_decay = 0.98
+    #     args.tryepi = 0
+    #     args.ranepi = 0
 
     win_buffer = collections.deque(maxlen=args.win_in_epi)
     for episode in range(args.episodes):
         args.episode = episode + 1
         # 固定地图
-        # random.seed(2)
-        # np.random.seed(2)
+        random.seed(2)
+        np.random.seed(2)
 
         states = env.reset()
         # print('epi:', episode)
@@ -96,13 +96,18 @@ def main():
             # 刷新环境
             # if episode % 100 == 0 and episode != 0:
             #     env.render()
-            if args.episode > (args.episodes - 10):
+            if os.path.exists('model_dqn2.pt'):
                 env.render()
-            # env.render()
+            else:
+                if args.episode > (args.episodes - 10):
+                    env.render()
 
             # 选择action
             actions = env.act(states)
-            actions[0] = agent1.choose_action(state_feature1)
+            if step%10 == 0:
+                actions[0] = 5
+            else:
+                actions[0] = agent1.choose_action(state_feature1)
 
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
             if 10 not in next_state[0]['alive']:

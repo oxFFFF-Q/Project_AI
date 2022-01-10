@@ -154,7 +154,7 @@ class DQN2Agent(BaseAgent):
         r_hit = -0.3
         r_s = -0.3
         r_um_bomb = -0.2
-        r_n_move = -0.1
+        r_n_move = -0.05
         r_move = 0.05
 
         rigid = featurel[0].numpy()
@@ -190,11 +190,10 @@ class DQN2Agent(BaseAgent):
             # print('pos_bomb:', pos_bomb)
             for i in range(len(pos_bomb)):
                 bomb_flame = self.build_flame(pos_bomb[i][0], pos_bomb[i][1], rigid, 2)
-                if [p0, p1] not in np.argwhere(bomb_flame == 1).tolist():
+                if [position0, position1] not in np.argwhere(bomb_flame == 1).tolist():
                     reward += r_um_bomb
                     if (p0, p1) == (position0, position1):
-                        reward += r_n_move
-                        reward += r_n_move
+                        reward += r_n_move*6
         # reward_n_move
         if (p0, p1) == (position0, position1):
             reward += r_n_move
@@ -218,12 +217,11 @@ class DQN2Agent(BaseAgent):
 
         # reward_wood
         if int(action) == 5:
-            reward += r_put_bomb
+            # reward += r_put_bomb
             # reward_n_move
             if (p0, p1) == (position0, position1):
-                reward += -r_move
-            else:
-                reward += r_move
+                reward += r_n_move*4
+
             # bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
             # num_wood = np.count_nonzero(wood * bomb_flame == 1)
             # reward += num_wood * r_wood
