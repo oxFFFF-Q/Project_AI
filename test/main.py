@@ -98,7 +98,7 @@ def main():
             agent1.buffer.append([state_feature, actions[0], reward[0], next_state_feature, done])
             
             # 先走batch步之后再开始学习
-            if episode > args.tryepi and agent1.buffer.size() >= args.batch:
+            if episode > args.tryepi and agent1.buffer.size() >= args.batch*3:
                 agent1.update(args.gamma, args.batch)
             
             # 更新state

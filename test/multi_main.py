@@ -17,7 +17,6 @@ from plot import plot_win_rate
 def main():
     """解析参数"""
     parser = argparse.ArgumentParser(description='DQN pommerman MARL')
-    parser.add_argument('--episode', type=int, default=0, help='episode')
     parser.add_argument('--episodes', type=int, default=1000, help='episodes')
     parser.add_argument('--maxsteps', type=int, default=200, help='maximum steps')
     parser.add_argument('--showevery', type=int, default=1, help='report loss every n episodes')
@@ -57,10 +56,8 @@ def main():
     # plot
     list_win = []
 
-
     episode_rewards = []
     action_n = 6
-
 
     # 加载模型
     agent1.load_model()
@@ -72,7 +69,6 @@ def main():
         args.tryepi = 0
         args.ranepi = 0
 
-
     win_buffer = collections.deque(maxlen=args.win_in_epi)
     for episode in range(args.episodes):
         args.episode = episode + 1
@@ -80,27 +76,27 @@ def main():
         # random.seed(2)
         # np.random.seed(2)
 
-        states = env.reset()  
+        states = env.reset()
         # print('epi:', episode)
         done = False
         episode_reward = 0
         die = 0
 
         # lr_decay
-        if (episode+1) % args.lr_decay_s == 0:
-            epi = episode+1
-            if episode+1 == args.episodes:
+        if (episode + 1) % args.lr_decay_s == 0:
+            epi = episode + 1
+            if episode + 1 == args.episodes:
                 epi = -1
             agent1.lrdecay(epi)
 
         for step in range(args.maxsteps):
             state_feature1 = featurize2(env, states[0])
-            #state_feature3 = featurize2(env, states[2])
+            # state_feature3 = featurize2(env, states[2])
 
             # 刷新环境
             # if episode % 100 == 0 and episode != 0:
             #     env.render()
-            if args.episode > (args.episodes-10):
+            if args.episode > (args.episodes - 10):
                 env.render()
             # env.render()
 
@@ -122,7 +118,15 @@ def main():
             # next_state_feature3 = featurize2(env, next_state[2])
             # episode_reward += reward[0]
 
-            agent1.store_transition(state_feature1, actions, reward, next_state_feature1, done)
+            # 存储记忆
+            agent1.buffer.append([state_feature1, actions[0], reward[0], next_state_feature1, done])
+            # agent3.buffer.append([state_feature3, actions[2], reward[2], next_state_feature3, done])
+            # 先走batch步之后再开始学习
+            if agent1.buffer.size() >= args.batch and episode > 50:
+                # if agent1.buffer.size() >= args.batch:
+                agent1.update(args.gamma, args.batch)
+            # if episode > args.tryepi and agent1.buffer.size() >= args.batch:
+            #     agent3.update(args.gamma, args.batch)
             # 更新state
             states = next_state
 
@@ -132,7 +136,7 @@ def main():
             if 10 not in next_state[0]['alive']:
                 break
 
-        #if done:
+        # if done:
         #    episode_rewards.append(episode_reward)
         if episode % args.showevery == 0:
             if 0 in info.get('winners', []):
@@ -141,10 +145,10 @@ def main():
                 print(f"Episode: {episode + 1:2d} finished, result: Lose")
             else:
                 print(f"Episode: {episode + 1:2d} finished, result: Not finish")
-            #print(f"Avg Episode Reward: {np.mean(episode_rewards)}")
-        
+            # print(f"Avg Episode Reward: {np.mean(episode_rewards)}")
+
         if episode > args.win_in_epi:
-            agent1.epsdecay()
+
             if 0 in info.get('winners', []):
                 win_buffer.append(1)
             elif 1 in info.get('winners', []):
@@ -156,7 +160,6 @@ def main():
                 if len(list_win) % 500 == 0:
                     plot_win_rate(list_win)
 
-        agent1.epsdecay()
         # agent3.epsdecay()
 
     agent1.save_model()

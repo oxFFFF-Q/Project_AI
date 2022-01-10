@@ -11,7 +11,7 @@ from utils import featurize
 import os
 
 from pommerman.agents import BaseAgent
-from replay_buffer import ReplayBuffer, ReplayBuffer2
+from replay_buffer import ReplayBuffer
 from plot import plot_reward
 
 
@@ -38,7 +38,7 @@ class DQNAgent(BaseAgent):
         self.capacity = args.capacity
         self.batch = args.batch
         # self.buffer = ReplayBuffer(self.capacity, self.batch)
-        self.buffer = ReplayBuffer2(self.capacity)
+        self.buffer = ReplayBuffer(self.capacity)
         """神经网络"""
         self.model = nn.Sequential(
             nn.Linear(199, 128),

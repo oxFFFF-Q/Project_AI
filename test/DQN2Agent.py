@@ -14,20 +14,21 @@ import os
 from pommerman.agents import BaseAgent
 from replay_buffer import ReplayBuffer, ReplayBuffer2
 
+
 class Net2(nn.Module):
-    def __init__(self,env):
-        super(Net2,self).__init__()
+    def __init__(self, env):
+        super(Net2, self).__init__()
         # 打包conv2d -> 黑箱，之后可直接调用
         self.features = nn.Sequential(
-            nn.Conv2d(14,32,2,stride=1,padding=1),   # 二维卷积
+            nn.Conv2d(14, 32, 2, stride=1, padding=1),  # 二维卷积
             nn.ReLU(),
-            nn.Conv2d(32,64,3,stride=1,padding=1),
+            nn.Conv2d(32, 64, 3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(64,64,3,stride=1,padding=1),
+            nn.Conv2d(64, 64, 3, stride=1, padding=1),
             nn.AdaptiveAvgPool2d(1)
         )
         self.fc = nn.Sequential(
-            nn.Linear(75, 32),    # 全连接层
+            nn.Linear(75, 32),  # 全连接层
             nn.ReLU(),
             nn.Linear(32, 16),
             nn.ReLU(),
@@ -37,9 +38,9 @@ class Net2(nn.Module):
     def forward(self, lx, ax):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
-        #lx = lx.unsqueeze(3)
-        #print(lx[0])
-        #x = torch.unsqueeze(x, dim=0).float()
+        # lx = lx.unsqueeze(3)
+        # print(lx[0])
+        # x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)
         outx = torch.cat((lx, ax), 1)
@@ -50,20 +51,22 @@ class Net2(nn.Module):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
         lx = lx.unsqueeze(0)
-        #lx = lx.unsqueeze(3)
-        #x = torch.unsqueeze(x, dim=0).float()
+        # lx = lx.unsqueeze(3)
+        # x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
-        lx = lx.view(lx.size(0), -1)    # 重新定义矩阵的形状
-        ax = ax.unsqueeze(0)                   # 在第一维增加一个维度
-        outx = torch.cat((lx, ax), 1)       # 两个张量（tensor）拼接在一起,按列拼接
+        lx = lx.view(lx.size(0), -1)  # 重新定义矩阵的形状
+        ax = ax.unsqueeze(0)  # 在第一维增加一个维度
+        outx = torch.cat((lx, ax), 1)  # 两个张量（tensor）拼接在一起,按列拼接
         out = self.fc(outx)
         action_value = out[0]
         return action_value
+
 
 class DQN2Agent(BaseAgent):
     """
     DQN from scratch
     """
+
     def __init__(self, env, args, character=characters.Bomber):
         super(DQN2Agent, self).__init__(character)
         self.obs_n = env.observation_space.shape[0]  # output_dim
@@ -79,7 +82,6 @@ class DQN2Agent(BaseAgent):
         self.lr_decay_s = args.lr_decay_s
         self.baseAgent = SimpleAgent()
         self.episodes = args.episodes
-        self.episode = args.episode
         self.maxsteps = args.maxsteps
         self.showevery = args.showevery
 
@@ -98,7 +100,7 @@ class DQN2Agent(BaseAgent):
         self.learn_step_counter = 0
         self.memory_counter = 0
         self.eval_net, self.target_net = Net2(self.env), Net2(self.env)
-        #self.optim = optim.Adam(self.model.parameters(), self.lr) #adam优化算法
+        # self.optim = optim.Adam(self.model.parameters(), self.lr) #adam优化算法
         self.optim = torch.optim.Adam(self.eval_net.parameters(), lr=self.lr)
         self.MSE_loss = nn.MSELoss()
 
@@ -108,11 +110,11 @@ class DQN2Agent(BaseAgent):
     #     return qvals
 
     def act(self, obs, action_space):
-        return self.baseAgent.act(obs,self.action_n)
+        return self.baseAgent.act(obs, self.action_n)
 
     def dqnact(self, obs):
-        #action = self.eval_net.forward(obs)[0]
-        #result = (torch.max(action, 0)[1]).numpy()
+        # action = self.eval_net.forward(obs)[0]
+        # result = (torch.max(action, 0)[1]).numpy()
         lx = obs['local']
         ax = obs['additional']
         action_value = self.eval_net.forward1(lx, ax)
@@ -123,28 +125,37 @@ class DQN2Agent(BaseAgent):
         action = random.randrange(0, 6, 1)
         return action
 
-
     def choose_action(self, obs):
-        if np.random.uniform() > self.epsilon:  # greedy
+        if os.path.exists('model_dqn2.pt'):
             action = self.dqnact(obs)
             print('dqnact:', action)
         else:
-            action = self.randomact()
-            print('randomact:', action)
-        print('eps:', self.epsilon)
+            if np.random.uniform() < self.epsilon:  # greedy
+                action = self.dqnact(obs)
+                print('dqnact:', action)
+            else:
+                action = self.randomact()
+                # print('randomact:', action)
+            # if self.epsilon != 0:
+            #     self.epsdecay()
+            #     # print('eps:', self.epsilon)
+            # else:
+            #     print('DQN:')
         return int(np.int64(action))
-
 
     def reward(self, featurel, featurea, action, sl, sa, rewards):
         # set up reward
         r_wood = 0.08
         r_powerup = 0.2
-        r_put_bomb = 0.05
+        r_put_bomb = 0.08
         r_win = 0.5
         r_fail = -0.5
         r_kick = 0.2
         r_hit = -0.3
-        r_s = -0.5
+        r_s = -0.3
+        r_um_bomb = -0.2
+        r_n_move = -0.1
+        r_move = 0.05
 
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
@@ -168,13 +179,27 @@ class DQN2Agent(BaseAgent):
         message = int(featurea[7].item())
         rewards = rewards.numpy()
         reward = 0
-        #sagents = sl[4]
+        # sagents = sl[4]
         sbomb = sl[2].numpy()
         action = int(action.item())
 
+        # reward_n_um_bomb
+        if np.argwhere(bomb == 1).size != 0:
+            pos_bomb = np.argwhere(bomb == 1)
+            # print('bomb:', bomb)
+            # print('pos_bomb:', pos_bomb)
+            for i in range(len(pos_bomb)):
+                bomb_flame = self.build_flame(pos_bomb[i][0], pos_bomb[i][1], rigid, 2)
+                if [p0, p1] not in np.argwhere(bomb_flame == 1).tolist():
+                    reward += r_um_bomb
+                    if (p0, p1) == (position0, position1):
+                        reward += r_n_move
+                        reward += r_n_move
+        # reward_n_move
+        if (p0, p1) == (position0, position1):
+            reward += r_n_move
 
-
-
+        # reward_win_fail
         # if rewards == 1:
         #     reward += r_win
         # if rewards == -1:
@@ -194,19 +219,23 @@ class DQN2Agent(BaseAgent):
         # reward_wood
         if int(action) == 5:
             reward += r_put_bomb
-            bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
-            num_wood = np.count_nonzero(wood*bomb_flame == 1)
-            reward += num_wood*r_wood
+            # reward_n_move
+            if (p0, p1) == (position0, position1):
+                reward += -r_move
+            else:
+                reward += r_move
+            # bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
+            # num_wood = np.count_nonzero(wood * bomb_flame == 1)
+            # reward += num_wood * r_wood
 
         # # reward_kick
         # if sbomb[position0, position1] == 1 and rewards != -1:
         #     reward += r_kick
         #
         # reward_hit
-        if action>0 or action<5:
-            if (p0, p1) == (position0, position1):
-                reward += r_hit
-
+        # if action > 0 or action < 5:
+        #     if (p0, p1) == (position0, position1):
+        #         reward += r_hit
 
         # reward_suicide
         if [position0, position1] in np.argwhere(flame == 1).tolist():
@@ -241,9 +270,6 @@ class DQN2Agent(BaseAgent):
         #         print('flame:')
         #         print(flame)
 
-
-
-
         """
         exist_bomb = []
         for row, rowbomb in enumerate(bomb):
@@ -252,7 +278,7 @@ class DQN2Agent(BaseAgent):
                     exist_bomb.append((row, col))
         #print(bomb)
         #print(exist_bomb)
-        
+
         if exist_bomb:
             for ebomb in exist_bomb:
                 bomb_flame1 = self.build_flame(ebomb[0], ebomb[1], rigid, blast_strength)
@@ -263,12 +289,12 @@ class DQN2Agent(BaseAgent):
         return reward
 
     def build_flame(self, position0, position1, rigid, blast_strength):
-        
-        position_bomb = np.array([position0,position1])
+
+        position_bomb = np.array([position0, position1])
         m = position_bomb[0]
         n = position_bomb[1]
         l = blast_strength
-        f = [l,l,l,l]       # Scope of flame: up down left right
+        f = [l, l, l, l]  # Scope of flame: up down left right
         bomb_flame = np.zeros_like(rigid)
 
         # 判断实体墙或边界是否阻断火焰
@@ -293,37 +319,26 @@ class DQN2Agent(BaseAgent):
         rigid_1 = flame_down * rigid
         rigid_2 = flame_left * rigid
         rigid_3 = flame_right * rigid
-        if np.argwhere(rigid_0==1).size != 0:    # 上实体墙
-            rigid_up = np.max(np.argwhere(rigid_0==1)[:,0][0])
-            if rigid_up >= m-f[0]:
+        if np.argwhere(rigid_0 == 1).size != 0:  # 上实体墙
+            rigid_up = np.max(np.argwhere(rigid_0 == 1)[:, 0][0])
+            if rigid_up >= m - f[0]:
                 f[0] = m - rigid_up - 1
-        if np.argwhere(rigid_1==1).size != 0:   # 下实体墙
+        if np.argwhere(rigid_1 == 1).size != 0:  # 下实体墙
             rigid_down = np.min(np.argwhere(rigid_1 == 1)[:, 0][0])
-            if rigid_down <= m+f[1]:
+            if rigid_down <= m + f[1]:
                 f[1] = rigid_down - m - 1
-        if np.argwhere(rigid_2==1).size != 0:  # 左实体墙
+        if np.argwhere(rigid_2 == 1).size != 0:  # 左实体墙
             rigid_left = np.max(np.argwhere(rigid_2 == 1)[0, :][1])
-            if rigid_left >= n-f[2]:
+            if rigid_left >= n - f[2]:
                 f[2] = n - rigid_left - 1
-        if np.argwhere(rigid_3==1).size != 0:  # 右实体墙
+        if np.argwhere(rigid_3 == 1).size != 0:  # 右实体墙
             rigid_right = np.min(np.argwhere(rigid_3 == 1)[0, :][1])
-            if rigid_right <= n+f[3]:
+            if rigid_right <= n + f[3]:
                 f[3] = rigid_right - n - 1
-        bomb_flame[m-f[0]:m+f[1]+1, n] = 1
-        bomb_flame[m, n-f[2]:n+f[3]+1] = 1
+        bomb_flame[m - f[0]:m + f[1] + 1, n] = 1
+        bomb_flame[m, n - f[2]:n + f[3] + 1] = 1
 
         return bomb_flame
-
-    def store_transition(self, state_feature1, actions, reward, next_state_feature1, done):
-        # 存储记忆
-        self.buffer.append([state_feature1, actions[0], reward[0], next_state_feature1, done])
-        # agent3.buffer.append([state_feature3, actions[2], reward[2], next_state_feature3, done])
-        # 先走batch步之后再开始学习
-        if self.buffer.size() >= self.batch and self.episode > 50:
-            # if agent1.buffer.size() >= args.batch:
-            self.update(args.gamma, self.batch)
-        # if episode > args.tryepi and agent1.buffer.size() >= args.batch:
-        #     agent3.update(args.gamma, args.batch)
 
 
     def update(self, gamma, batch_size):
@@ -334,32 +349,32 @@ class DQN2Agent(BaseAgent):
         statesl, statesa, actions, rewards, next_statesl, next_statesa, done = self.buffer.sample(batch_size)
         # self.store_transition(statesl, statesa, actions, rewards , next_statesl, next_statesa)
 
-        #print(rewards)
-        #print(actions)
+        # print(rewards)
+        # print(actions)
         action_index = actions.squeeze(-2)
-        #print(action_index)
-        curr_Q_batch = self.eval_net(statesl, statesa)#[:,0]
+        # print(action_index)
+        curr_Q_batch = self.eval_net(statesl, statesa)  # [:,0]
         curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
         # print('curr_Q', curr_Q)
-        next_batch = self.target_net(next_statesl, next_statesa).detach()   #[:,0]
-        next_Q = torch.max(next_batch,1)[0]
+        next_batch = self.target_net(next_statesl, next_statesa).detach()  # [:,0]
+        next_Q = torch.max(next_batch, 1)[0]
         # print('next_Q', next_Q)
 
-        #计算reward
+        # 计算reward
         computed_reward = []
         for l, a, action, sl, sa, re in zip(next_statesl, next_statesa, actions, statesl, statesa, rewards):
             computed_reward.append(self.reward(l, a, action, sl, sa, re))
-        #这是得到的reward
+        # 这是得到的reward
         computed_reward = torch.tensor(computed_reward)
         rewards_batch = computed_reward
-        #print(rewards_batch)
+        # print(rewards_batch)
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
         expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
 
         # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
-        loss = self.MSE_loss(curr_Q, expected_Q[0]) # TODO: try Huber Loss later too
+        loss = self.MSE_loss(curr_Q, expected_Q[0])  # TODO: try Huber Loss later too
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
@@ -372,15 +387,15 @@ class DQN2Agent(BaseAgent):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
 
     def lrdecay(self, epi):
-        self.lr = self.lr * self.lr_decay ** (epi/self.lr_decay_s)
+        self.lr = self.lr * self.lr_decay ** (epi / self.lr_decay_s)
 
     def save_model(self):
-        torch.save({'dqn2Net': self.eval_net.state_dict(),'optimizer2_state_dict': self.optim.state_dict()}, 'model_dqn2.pt')
-    
+        torch.save({'dqn2Net': self.eval_net.state_dict(), 'optimizer2_state_dict': self.optim.state_dict()},
+                   'model_dqn2.pt')
+
     def load_model(self):
         if os.path.exists('model_dqn2.pt'):
             state_dict = torch.load('model_dqn2.pt')
             self.eval_net.load_state_dict(state_dict['dqn2Net'])
             self.optim.load_state_dict(state_dict['optimizer2_state_dict'])
             self.target_net.load_state_dict(self.eval_net.state_dict())
-
