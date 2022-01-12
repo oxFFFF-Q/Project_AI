@@ -1,5 +1,6 @@
 from pommerman.agents.simple_agent import SimpleAgent
 import torch
+from torch.autograd import Variable
 import torch.nn as nn
 import torch.optim as optim
 from pommerman import characters
@@ -48,8 +49,8 @@ class Net2(nn.Module):
         return out
 
     def forward1(self, lx, ax):
-        lx = torch.FloatTensor(lx)
-        ax = torch.FloatTensor(ax)
+        lx = Variable(torch.FloatTensor(lx))
+        ax = Variable(torch.FloatTensor(ax))
         lx = lx.unsqueeze(0)
         # lx = lx.unsqueeze(3)
         # x = torch.unsqueeze(x, dim=0).float()
@@ -147,7 +148,7 @@ class DQN2Agent(BaseAgent):
         # set up reward
         r_wood = 0.08
         r_powerup = 0.2
-        r_put_bomb = 0.08
+        r_put_bomb = 0.05
         r_win = 0.5
         r_fail = -0.5
         r_kick = 0.2
@@ -189,14 +190,33 @@ class DQN2Agent(BaseAgent):
             # print('bomb:', bomb)
             # print('pos_bomb:', pos_bomb)
             for i in range(len(pos_bomb)):
-                bomb_flame = self.build_flame(pos_bomb[i][0], pos_bomb[i][1], rigid, 2)
-                if [position0, position1] not in np.argwhere(bomb_flame == 1).tolist():
+                bomb_flame = self.build_flame(pos_bomb[i][0], pos_bomb[i][1], rigid, 1)
+                if [position0, position1] in np.argwhere(bomb_flame == 1).tolist():
                     reward += r_um_bomb
-                    if (p0, p1) == (position0, position1):
-                        reward += r_n_move*6
+                    # print('um1')
+                    if [p0, p1] in np.argwhere(bomb_flame == 1).tolist():
+                        reward += r_um_bomb
+                        # print('um2')
+                # if [p0, p1] == pos_bomb.tolist()[i]:
+                #     reward += r_um_bomb
+
         # reward_n_move
         if (p0, p1) == (position0, position1):
             reward += r_n_move
+            # print('n_m')
+
+        # reward_suicide
+        if [position0, position1] in np.argwhere(flame == 1).tolist():
+            reward += r_s
+            # print('in_f1')
+            if [p0, p1] in np.argwhere(flame == 1).tolist():
+                reward += r_s
+                # print('in_f2')
+        # lay bomb
+        if int(action) == 5:
+            reward += r_put_bomb
+            if (p0, p1) == (position0, position1):
+                reward += r_n_move*2
 
         # reward_win_fail
         # if rewards == 1:
@@ -216,12 +236,7 @@ class DQN2Agent(BaseAgent):
         #     reward += r_powerup
 
         # reward_wood
-        if int(action) == 5:
-            # reward += r_put_bomb
-            # reward_n_move
-            if (p0, p1) == (position0, position1):
-                reward += r_n_move*4
-
+        # if int(action) == 5:
             # bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
             # num_wood = np.count_nonzero(wood * bomb_flame == 1)
             # reward += num_wood * r_wood
@@ -234,15 +249,6 @@ class DQN2Agent(BaseAgent):
         # if action > 0 or action < 5:
         #     if (p0, p1) == (position0, position1):
         #         reward += r_hit
-
-        # reward_suicide
-        if [position0, position1] in np.argwhere(flame == 1).tolist():
-            reward += r_s
-            # print('position:', position0, position1)
-            # print('pos_falme:')
-            # print(np.argwhere(flame == 1))
-            # print('flame:')
-            # print(flame)
 
         # reward_kill
         # p_2 = np.argwhere(agent2 == 1).tolist()
@@ -345,34 +351,33 @@ class DQN2Agent(BaseAgent):
         self.learn_step_counter += 1
 
         statesl, statesa, actions, rewards, next_statesl, next_statesa, done = self.buffer.sample(batch_size)
-        # self.store_transition(statesl, statesa, actions, rewards , next_statesl, next_statesa)
 
-        # print(rewards)
-        # print(actions)
         action_index = actions.squeeze(-2)
-        # print(action_index)
         curr_Q_batch = self.eval_net(statesl, statesa)  # [:,0]
         curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
-        # print('curr_Q', curr_Q)
         next_batch = self.target_net(next_statesl, next_statesa).detach()  # [:,0]
         next_Q = torch.max(next_batch, 1)[0]
-        # print('next_Q', next_Q)
+
 
         # 计算reward
         computed_reward = []
         for l, a, action, sl, sa, re in zip(next_statesl, next_statesa, actions, statesl, statesa, rewards):
             computed_reward.append(self.reward(l, a, action, sl, sa, re))
-        # 这是得到的reward
         computed_reward = torch.tensor(computed_reward)
         rewards_batch = computed_reward
-        # print(rewards_batch)
+
+
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
         expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
-
         # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
-        loss = self.MSE_loss(curr_Q, expected_Q[0])  # TODO: try Huber Loss later too
+        # Q_target = rewards_batch + gamma * next_Q
+
+
+        # loss = self.MSE_loss(curr_Q, expected_Q[0])  # TODO: try Huber Loss later too
+        loss = self.MSE_loss(curr_Q, expected_Q)
+
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
@@ -383,9 +388,6 @@ class DQN2Agent(BaseAgent):
 
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
-
-    def lrdecay(self, epi):
-        self.lr = self.lr * self.lr_decay ** (epi / self.lr_decay_s)
 
     def save_model(self):
         torch.save({'dqn2Net': self.eval_net.state_dict(), 'optimizer2_state_dict': self.optim.state_dict()},

@@ -25,9 +25,9 @@ def main():
     parser.add_argument('--eps_decay', type=float, default=0.9999, help='epsilon decay rate')
     parser.add_argument('--min_eps', type=float, default=0.05, help='minimum epsilon for decaying')
     parser.add_argument('--gamma', type=float, default=0.95, help='gamma')
-    parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
+    parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
     parser.add_argument('--lr_decay', type=float, default=0.99, help='learning rate decay rate')
-    parser.add_argument('--lr_decay_s', type=float, default=100, help='learning rate decay rate setp size')
+    parser.add_argument('--lr_decay_s', type=float, default=10, help='learning rate decay rate setp size')
 
     parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=128, help='batch size for replay buffer')
@@ -82,32 +82,24 @@ def main():
         episode_reward = 0
         die = 0
 
-        # lr_decay
-        if (episode + 1) % args.lr_decay_s == 0:
-            epi = episode + 1
-            if episode + 1 == args.episodes:
-                epi = -1
-            agent1.lrdecay(epi)
 
         for step in range(args.maxsteps):
             state_feature1 = featurize2(env, states[0])
             # state_feature3 = featurize2(env, states[2])
 
             # 刷新环境
+            env.render()
             # if episode % 100 == 0 and episode != 0:
             #     env.render()
-            if os.path.exists('model_dqn2.pt'):
-                env.render()
-            else:
-                if args.episode > (args.episodes - 10):
-                    env.render()
+            # if os.path.exists('model_dqn2.pt'):
+            #     env.render()
+            # else:
+            #     if args.episode > (args.episodes - 10):
+            #         env.render()
 
             # 选择action
             actions = env.act(states)
-            if step%10 == 0:
-                actions[0] = 5
-            else:
-                actions[0] = agent1.choose_action(state_feature1)
+            actions[0] = agent1.choose_action(state_feature1)
 
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
             if 10 not in next_state[0]['alive']:
@@ -127,19 +119,20 @@ def main():
             agent1.buffer.append([state_feature1, actions[0], reward[0], next_state_feature1, done])
             # agent3.buffer.append([state_feature3, actions[2], reward[2], next_state_feature3, done])
             # 先走batch步之后再开始学习
-            if agent1.buffer.size() >= args.batch and episode > 50:
-                # if agent1.buffer.size() >= args.batch:
+            if agent1.buffer.size() > args.batch and episode > 50:
+            # if agent1.buffer.size() > args.batch:
                 agent1.update(args.gamma, args.batch)
             # if episode > args.tryepi and agent1.buffer.size() >= args.batch:
             #     agent3.update(args.gamma, args.batch)
-            # 更新state
-            states = next_state
 
             if done:
                 break
             # agent1 die -> game over
             if 10 not in next_state[0]['alive']:
                 break
+
+            # 更新state
+            states = next_state
 
         # if done:
         #    episode_rewards.append(episode_reward)
