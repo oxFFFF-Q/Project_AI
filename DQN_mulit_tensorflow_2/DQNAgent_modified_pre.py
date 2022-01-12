@@ -36,21 +36,20 @@ class DQNAgent(BaseAgent):
     def new_model(self):
 
         model = Sequential()
-        input_shape = (constants.MINIBATCH_SIZE, 14, 11, 11,)
-        model.add(Conv2D(64, 2, input_shape=input_shape[1:], activation="relu", data_format="channels_first"))
-        print(model.output_shape)
-        # model.add(MaxPooling2D(pool_size=(3, 3), data_format="channels_first"))
-        model.add(Conv2D(64, 2, activation="relu", data_format="channels_first"))
-        print(model.output_shape)
-        # model.add(MaxPooling2D(pool_size=(2, 2), data_format="channels_first"))
-        model.add(Conv2D(64, 2, activation="relu", data_format="channels_first"))
-        print(model.output_shape)
+        input_shape = (constants.MINIBATCH_SIZE, 18, 11, 11,)
+        model.add(Conv2D(256, 3, (1, 1), input_shape=input_shape[1:], activation="relu", data_format="channels_first",
+                         padding="same"))
+        # print(model.output_shape)
+        model.add(Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same"))
+        # print(model.output_shape)
+        model.add(Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same"))
+        # print(model.output_shape)
 
         model.add(Flatten())
-        model.add(Dense(512, activation="relu"))
+        model.add(Dense(128, activation='linear'))
         model.add(Dense(6, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(learning_rate=0.0005), metrics=['accuracy'])
-
+        # model.summary()
         return model
 
     def act(self, obs, action_space):

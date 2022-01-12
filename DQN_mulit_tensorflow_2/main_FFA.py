@@ -27,15 +27,12 @@ def main():
     reward_to_csv = []
     result_to_csv = []
 
-    agent1.load_weights()
     total_numOfSteps = 0
-    episode = 5500
+    episode = 1500
 
     while True:
-
         current_state = env.reset()
         # 将state 转化 1D array
-        state_feature = featurize2D(current_state[0])
 
         episode_reward = 0
         numOfSteps = 0
@@ -44,11 +41,12 @@ def main():
 
         while not done:
 
+            state_feature = featurize2D(current_state[0])
             numOfSteps += 1
             total_numOfSteps += 1
 
-            if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
-            #if constants.epsilon > np.random.random():
+            #if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
+            if constants.epsilon > np.random.random():
                 # 获取动作
                 actions = env.act(current_state)
                 actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
@@ -62,9 +60,12 @@ def main():
             if 10 not in new_state[0]["alive"]:
                 done = True
 
-            # reward_shaping
-            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0])
 
+
+            # reward_shaping
+            agent1.buffer.append_action(actions[0])
+            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0],agent1.buffer.buffer_action)
+            #print("reward: ",reward)
             next_state_feature = featurize2D(new_state[0])
             episode_reward += reward
 
@@ -120,7 +121,7 @@ def main():
                                                                         'win' if result == 2 else "lose",
                                                                         numOfSteps))
 
-                print("Reward {:.2f}, Average Episode Reward: {:.3f}, win_rate:{:.2f}, draw_rate:{:.2f}".format(
+                print("Reward {:.3f}, Average Episode Reward: {:.3f}, win_rate:{:.2f}, draw_rate:{:.2f}".format(
                     episode_reward,
                     np.mean(episode_rewards),
                     win_rate,

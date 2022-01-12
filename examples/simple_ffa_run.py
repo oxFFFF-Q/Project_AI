@@ -1,16 +1,21 @@
 '''An example to show how to set up an pommerman game programmatically'''
 import pommerman
+import random
+import numpy as np
+import tensorflow as tf
 from pommerman import agents
 
 
 def main():
     '''Simple function to bootstrap a game.
-       
+
        Use this as an example to set up your training env.
     '''
     # Print all possible environments in the Pommerman registry
     print(pommerman.REGISTRY)
-
+    random.seed(1)
+    #np.random.seed(1)
+    #tf.random.set_seed(1)
     # Create a set of agents (exactly four)
     agent_list = [
         agents.SimpleAgent(),

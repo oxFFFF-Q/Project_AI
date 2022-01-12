@@ -1,7 +1,8 @@
 from pommerman import constants
+
 MIN_REPLAY_MEMORY_SIZE = 1000  # Minimum number of steps in a memory to start training
 MINIBATCH_SIZE = 128  # How many steps (samples) to use for training
-UPDATE_EVERY = 25  # Terminal states (end of episodes)
+UPDATE_EVERY = 20  # Terminal states (end of episodes)
 MAX_BUFFER_SIZE = 100_000
 MAX_BUFFER_SIZE_PRE = 1_000_000
 DISCOUNT = 0.95
@@ -11,7 +12,6 @@ MAX_STEPS = constants.MAX_STEPS
 EPISODES = 100000
 SHOW_EVERY = 1
 
-# TODO 设置较小epsilon
 # Exploration settings
 epsilon = 0.95  # not a constant, going to be decayed
 EPSILON_DECAY = 0.99975
