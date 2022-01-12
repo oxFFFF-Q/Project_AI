@@ -140,11 +140,11 @@ class DQNAgent(BaseAgent):
     def save_weights(self, numOfEpisode):
 
         # 完成训练后存档参数
-        if numOfEpisode % 500 == 0:
+        if numOfEpisode % 100 == 0:
             self.training_model.save_weights(('./checkpoints/FFA{:}/FFA{:}'.format(numOfEpisode, numOfEpisode)))
             #self.training_model.save_weights(('./checkpoints/FFA-test-1/FFA-test-1'.format(numOfEpisode, numOfEpisode)))
-
+            print("weights saved!")
     def load_weights(self):
-        self.training_model.load_weights('./checkpoints/FFA1500/FFA1500')
-        self.trained_model.load_weights('./checkpoints/FFA1500/FFA1500')
+        self.training_model.load_weights('./checkpoints/FFA1900/FFA1900')
+        self.trained_model.load_weights('./checkpoints/FFA1900/FFA1900')
         print("weights loaded!")

@@ -28,7 +28,7 @@ def main():
     result_to_csv = []
 
     total_numOfSteps = 0
-    episode = 1500
+    episode = 1900
 
     while True:
         current_state = env.reset()
@@ -45,7 +45,7 @@ def main():
             numOfSteps += 1
             total_numOfSteps += 1
 
-            #if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
+            # if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
             if constants.epsilon > np.random.random():
                 # 获取动作
                 actions = env.act(current_state)
@@ -60,18 +60,16 @@ def main():
             if 10 not in new_state[0]["alive"]:
                 done = True
 
-
-
             # reward_shaping
             agent1.buffer.append_action(actions[0])
-            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0],agent1.buffer.buffer_action)
-            #print("reward: ",reward)
+            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
+            # print("reward: ",reward)
             next_state_feature = featurize2D(new_state[0])
             episode_reward += reward
 
             # 每一定局数显示游戏画面
-            #if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
-            #env.render()
+            # if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
+            # env.render()
 
             # 储存记忆
             agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
