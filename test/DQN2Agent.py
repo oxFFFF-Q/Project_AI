@@ -355,6 +355,9 @@ class DQN2Agent(BaseAgent):
         action_index = actions.squeeze(-2)
         curr_Q_batch = self.eval_net(statesl, statesa)  # [:,0]
         curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
+        print('curr_Q:')
+        print(curr_Q)
+        print(curr_Q.detach().numpy().shape)
         next_batch = self.target_net(next_statesl, next_statesa).detach()  # [:,0]
         next_Q = torch.max(next_batch, 1)[0]
 
@@ -373,10 +376,14 @@ class DQN2Agent(BaseAgent):
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
         # Q_target = rewards_batch + gamma * next_Q
+        print('exp_Q:')
+        print(expected_Q)
+        print(expected_Q.detach().numpy().shape)
+        print('-------------------------------------------')
 
 
         # loss = self.MSE_loss(curr_Q, expected_Q[0])  # TODO: try Huber Loss later too
-        loss = self.MSE_loss(curr_Q, expected_Q)
+        loss = self.MSE_loss(curr_Q, expected_Q[0])
 
         self.optim.zero_grad()
         loss.backward()

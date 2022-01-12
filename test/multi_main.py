@@ -88,7 +88,7 @@ def main():
             # state_feature3 = featurize2(env, states[2])
 
             # 刷新环境
-            env.render()
+            # env.render()
             # if episode % 100 == 0 and episode != 0:
             #     env.render()
             # if os.path.exists('model_dqn2.pt'):
@@ -119,8 +119,8 @@ def main():
             agent1.buffer.append([state_feature1, actions[0], reward[0], next_state_feature1, done])
             # agent3.buffer.append([state_feature3, actions[2], reward[2], next_state_feature3, done])
             # 先走batch步之后再开始学习
-            if agent1.buffer.size() > args.batch and episode > 50:
-            # if agent1.buffer.size() > args.batch:
+            # if agent1.buffer.size() > args.batch and episode > 50:
+            if agent1.buffer.size() > args.batch:
                 agent1.update(args.gamma, args.batch)
             # if episode > args.tryepi and agent1.buffer.size() >= args.batch:
             #     agent3.update(args.gamma, args.batch)

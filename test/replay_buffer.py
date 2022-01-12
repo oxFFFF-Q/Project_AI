@@ -3,9 +3,11 @@ import random
 import collections
 import torch
 
-Experience = collections.namedtuple('Experience',
-                                    field_names=['state', 'action', 'reward',
-                                                 'done', 'new_state'])
+
+# # 可以使用index or name进行访问
+# Experience = collections.namedtuple('Experience',
+#                                     field_names=['state', 'action', 'reward',
+#                                                  'done', 'new_state'])
 
 
 class ReplayBuffer(object):
@@ -14,7 +16,7 @@ class ReplayBuffer(object):
     """
 
     def __init__(self, capacity, batch_size):
-        self.buffer = collections.deque(maxlen=capacity)
+        self.buffer = collections.deque(maxlen=capacity)  # 从两端append 的数据,  默认从右边加入
         self.batch_size = batch_size
 
     def __len__(self):
@@ -22,8 +24,9 @@ class ReplayBuffer(object):
 
     def append(self, experience):
         self.buffer.append(experience)
+        # 数据覆盖
         if len(self.buffer) > self.buffer.maxlen:
-            self.buffer.popleft()
+            self.buffer.popleft()                 # 删去从最左边的数据
 
     def sample(self, batch_size):
         state_batch = []
@@ -32,7 +35,7 @@ class ReplayBuffer(object):
         next_state_batch = []
         done_batch = []
 
-        batch = random.sample(self.buffer, batch_size)
+        batch = random.sample(self.buffer, batch_size)  # 从序列seq中选择n个随机且独立的元素
 
         for experience in batch:
             state, action, reward, next_state, done = experience
