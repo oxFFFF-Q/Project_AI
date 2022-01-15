@@ -79,6 +79,7 @@ class Pomme(v0.Pomme):
         self.observations = observations
         return observations
 
+    # TODO radio
     def step(self, actions):
         personal_actions = []
         radio_actions = []

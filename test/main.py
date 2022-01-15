@@ -10,9 +10,10 @@ import collections
 from pommerman import agents
 from pommerman.configs import one_vs_one_env
 from DQNAgent import DQNAgent
+from DQN2Agent import DQN2Agent
 from utils import featurize
 import os
-from plot import plot_win_rate
+
 
 
 def main():
@@ -32,7 +33,7 @@ def main():
     parser.add_argument('--batch', type=int, default=201, help='batch size for replay buffer')
     parser.add_argument('--tryepi', type=int, default=50, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
-    parser.add_argument('--win_in_epi', type=int, default='500', help='calculate win in epi..')
+    parser.add_argument('--win_in_epi', type=int, default='2', help='calculate win in epi..')
     parser.add_argument('--ranepi', type=int, default='2000', help='agent go random action in epi..')
     args = parser.parse_args()
 
@@ -43,20 +44,17 @@ def main():
     agent_list = [agents.SimpleAgent(), agents.SimpleAgent()]  # placeholder
     env = pommerman.make('OneVsOne-v0', agent_list)
 
-    agent1 = DQNAgent(env, args)  # TODO: assertionerror; not agents.BaseAgent??
+    agent1 = DQN2Agent(env, args)  # TODO: assertionerror; not agents.BaseAgent??
     agent2 = agents.SimpleAgent()
 
     agent_list = [agent1, agent2]
     env = pommerman.make('OneVsOne-v0', agent_list)
 
-    # plot
-    list_win = []
-
     #episode_rewards = []
     #action_n = env.action_space.n
 
     # 加载模型
-    agent1.load_model()
+    #agent1.load_model()
     # collect win times
     if os.path.exists('model_dqn.pt'):
         args.tryepi = 0
@@ -76,17 +74,10 @@ def main():
                 env.render()
 
             # 选择action
-            if (episode < args.tryepi) or (args.epsilon > random.random()):
-                actions = env.act(states)
-            elif episode < args.ranepi and args.epsilon > random.random():
-                actions = env.act(states)
-            elif args.epsilon > random.random():
-                actions = env.act(states)
-                actions[0] = random.randrange(0,6,1)
-            else:
-                actions = env.act(states)
-                dqn_action = agent1.dqnact(state_feature)
-                actions[0] = int(np.int64(dqn_action))
+
+            actions = env.act(states)
+            dqn_action = agent1.dqnact(state_feature)
+            actions[0] = int(np.int64(dqn_action))
                 #print(actions[0])
 
             
@@ -98,7 +89,7 @@ def main():
             agent1.buffer.append([state_feature, actions[0], reward[0], next_state_feature, done])
             
             # 先走batch步之后再开始学习
-            if episode > args.tryepi and agent1.buffer.size() >= args.batch*3:
+            if episode > args.tryepi and agent1.buffer.size() >= args.batch:
                 agent1.update(args.gamma, args.batch)
             
             # 更新state
@@ -129,15 +120,11 @@ def main():
             if len(win_buffer) == args.win_in_epi:
                 avg = sum(win_buffer) / len(win_buffer)
                 print(f"current winrate: {avg}")
-                list_win.append(avg)
-                if len(list_win)%1000 == 0:
-                    plot_win_rate(list_win)
 
 
 
 
-
-        print('epsilon:',agent1.epsilon)
+        print('epsilon',agent1.epsilon)
 
     agent1.save_model()    #保存模型
 

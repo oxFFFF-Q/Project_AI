@@ -53,13 +53,13 @@ def main():
 
             # 每一定局数显示游戏画面
             # if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
-            #     env.render()
+            env.render()
 
             # 储存记忆
             agent1.buffer.append([state_feature, actions, reward, next_state_feature, done])
 
             # 学习!
-            agent1.train(done)
+            agent1.train(done, episode+1)
 
             # 更新state
             current_state = new_state
