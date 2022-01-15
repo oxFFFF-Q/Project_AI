@@ -29,7 +29,7 @@ def main():
     parser.add_argument('--lr_decay', type=float, default=0.99, help='learning rate decay rate')
     parser.add_argument('--lr_decay_s', type=float, default=10, help='learning rate decay rate setp size')
 
-    parser.add_argument('--capacity', type=int, default=100000, help='capacity for replay buffer')
+    parser.add_argument('--capacity', type=int, default=1000, help='capacity for replay buffer')
     parser.add_argument('--batch', type=int, default=128, help='batch size for replay buffer')
     parser.add_argument('--tryepi', type=int, default=100, help='episode for agent to gain experience')
     parser.add_argument('--gpu', type=str, default='0', help='gpu number')
@@ -73,8 +73,8 @@ def main():
     for episode in range(args.episodes):
         args.episode = episode + 1
         # 固定地图
-        random.seed(2)
-        np.random.seed(2)
+        random.seed(3)
+        np.random.seed(3)
 
         states = env.reset()
         # print('epi:', episode)
@@ -88,7 +88,6 @@ def main():
             # state_feature3 = featurize2(env, states[2])
 
             # 刷新环境
-            # env.render()
             # if episode % 100 == 0 and episode != 0:
             #     env.render()
             # if os.path.exists('model_dqn2.pt'):
@@ -99,14 +98,10 @@ def main():
 
             # 选择action
             actions = env.act(states)
+            # if episode > 50:
+            #     actions[0] = agent1.choose_action(state_feature1)
             actions[0] = agent1.choose_action(state_feature1)
-
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
-            if 10 not in next_state[0]['alive']:
-                info['winners'] = [1, 3]
-                reward = [-1, 1, -1, 1]
-
-            next_state_feature1 = featurize2(env, next_state[0])
 
             if 10 not in next_state[0]['alive']:
                 info['winners'] = [1, 3]
@@ -121,7 +116,7 @@ def main():
             # 先走batch步之后再开始学习
             # if agent1.buffer.size() > args.batch and episode > 50:
             if agent1.buffer.size() > args.batch:
-                agent1.update(args.gamma, args.batch)
+                Q_value, re, loss = agent1.update(args.gamma, args.batch)
             # if episode > args.tryepi and agent1.buffer.size() >= args.batch:
             #     agent3.update(args.gamma, args.batch)
 
@@ -134,6 +129,12 @@ def main():
             # 更新state
             states = next_state
 
+        # print('Q:')
+        # print(Q_value)
+        # print('re:')
+        # print(re)
+        # print('loss:')
+        # print(loss)
         # if done:
         #    episode_rewards.append(episode_reward)
         if episode % args.showevery == 0:

@@ -13,35 +13,32 @@ from utils import featurize, featurize2
 import os
 
 from pommerman.agents import BaseAgent
-from replay_buffer import ReplayBuffer, ReplayBuffer2
+from replay_buffer import ReplayBuffer2
 
 
 class Net2(nn.Module):
     def __init__(self, env):
         super(Net2, self).__init__()
-        # 打包conv2d -> 黑箱，之后可直接调用
-        self.features = nn.Sequential(
-            nn.Conv2d(14, 32, 2, stride=1, padding=1),  # 二维卷积
-            nn.ReLU(),
-            nn.Conv2d(32, 64, 3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(64, 64, 3, stride=1, padding=1),
-            nn.AdaptiveAvgPool2d(1)
-        )
-        self.fc = nn.Sequential(
-            nn.Linear(75, 32),  # 全连接层
-            nn.ReLU(),
-            nn.Linear(32, 16),
-            nn.ReLU(),
-            nn.Linear(16, 6)
-        )
+        self.features = nn.Sequential()
+        self.features.add_module('conv1', nn.Conv2d(14, 32, 2, stride=1, padding=1))
+        self.features.add_module('relu1', nn.ReLU(inplace=True))
+        self.features.add_module('conv2', nn.Conv2d(32, 64, 3, stride=1, padding=1))
+        self.features.add_module('relu2', nn.ReLU(inplace=True))
+        self.features.add_module('conv3', nn.Conv2d(64, 64, 3, stride=1, padding=1))
+        self.features.add_module('pool1', nn.AdaptiveAvgPool2d(1))                    # 进行池化降维
+
+        self.fc = nn.Sequential()
+        self.fc.add_module('lin1', nn.Linear(75, 32))
+        self.fc.add_module('rel1', nn.ReLU(inplace=True))
+        self.fc.add_module('lin2', nn.Linear(32, 16))
+        self.fc.add_module('rel2', nn.ReLU(inplace=True))
+        self.fc.add_module('lin3', nn.Linear(16, 6))
+        self.fc.add_module('rel3', nn.ReLU(inplace=True))
+
 
     def forward(self, lx, ax):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
-        # lx = lx.unsqueeze(3)
-        # print(lx[0])
-        # x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)
         outx = torch.cat((lx, ax), 1)
@@ -52,8 +49,6 @@ class Net2(nn.Module):
         lx = Variable(torch.FloatTensor(lx))
         ax = Variable(torch.FloatTensor(ax))
         lx = lx.unsqueeze(0)
-        # lx = lx.unsqueeze(3)
-        # x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)  # 重新定义矩阵的形状
         ax = ax.unsqueeze(0)  # 在第一维增加一个维度
@@ -88,27 +83,13 @@ class DQN2Agent(BaseAgent):
 
         self.capacity = args.capacity
         self.batch = args.batch
-        # self.buffer = ReplayBuffer(self.capacity, self.batch)
-        self.buffer = ReplayBuffer2(self.capacity)
-        """神经网络"""
-        # self.model = nn.Sequential(
-        #     nn.Linear(199, 128),
-        #     nn.ReLU(),
-        #     nn.Linear(128, 256),
-        #     nn.ReLU(),
-        #     nn.Linear(256, self.action_n)
-        # )
+        self.buffer = ReplayBuffer2(self.capacity, self.batch)
         self.learn_step_counter = 0
         self.memory_counter = 0
         self.eval_net, self.target_net = Net2(self.env), Net2(self.env)
-        # self.optim = optim.Adam(self.model.parameters(), self.lr) #adam优化算法
         self.optim = torch.optim.Adam(self.eval_net.parameters(), lr=self.lr)
         self.MSE_loss = nn.MSELoss()
 
-    # def forward(self, state):
-    #     state = torch.FloatTensor(state)
-    #     qvals = self.model(state)
-    #     return qvals
 
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, self.action_n)
@@ -133,22 +114,16 @@ class DQN2Agent(BaseAgent):
         else:
             if np.random.uniform() < self.epsilon:  # greedy
                 action = self.dqnact(obs)
-                print('dqnact:', action)
+                # print('dqnact:', action)
             else:
                 action = self.randomact()
-                # print('randomact:', action)
-            # if self.epsilon != 0:
-            #     self.epsdecay()
-            #     # print('eps:', self.epsilon)
-            # else:
-            #     print('DQN:')
         return int(np.int64(action))
 
     def reward(self, featurel, featurea, action, sl, sa, rewards):
         # set up reward
         r_wood = 0.08
         r_powerup = 0.2
-        r_put_bomb = 0.05
+        r_put_bomb = 0.08
         r_win = 0.5
         r_fail = -0.5
         r_kick = 0.2
@@ -184,45 +159,45 @@ class DQN2Agent(BaseAgent):
         sbomb = sl[2].numpy()
         action = int(action.item())
 
-        # reward_n_um_bomb
-        if np.argwhere(bomb == 1).size != 0:
-            pos_bomb = np.argwhere(bomb == 1)
-            # print('bomb:', bomb)
-            # print('pos_bomb:', pos_bomb)
-            for i in range(len(pos_bomb)):
-                bomb_flame = self.build_flame(pos_bomb[i][0], pos_bomb[i][1], rigid, 1)
-                if [position0, position1] in np.argwhere(bomb_flame == 1).tolist():
-                    reward += r_um_bomb
-                    # print('um1')
-                    if [p0, p1] in np.argwhere(bomb_flame == 1).tolist():
-                        reward += r_um_bomb
-                        # print('um2')
-                # if [p0, p1] == pos_bomb.tolist()[i]:
-                #     reward += r_um_bomb
-
-        # reward_n_move
-        if (p0, p1) == (position0, position1):
-            reward += r_n_move
-            # print('n_m')
-
-        # reward_suicide
-        if [position0, position1] in np.argwhere(flame == 1).tolist():
-            reward += r_s
-            # print('in_f1')
-            if [p0, p1] in np.argwhere(flame == 1).tolist():
-                reward += r_s
-                # print('in_f2')
-        # lay bomb
-        if int(action) == 5:
-            reward += r_put_bomb
-            if (p0, p1) == (position0, position1):
-                reward += r_n_move*2
+        # # reward_n_um_bomb
+        # if np.argwhere(bomb == 1).size != 0:
+        #     pos_bomb = np.argwhere(bomb == 1)
+        #     # print('bomb:', bomb)
+        #     # print('pos_bomb:', pos_bomb)
+        #     for i in range(len(pos_bomb)):
+        #         bomb_flame = self.build_flame(pos_bomb[i][0], pos_bomb[i][1], rigid, 1)
+        #         if [position0, position1] in np.argwhere(bomb_flame == 1).tolist():
+        #             reward += r_um_bomb
+        #             # print('um1')
+        #             if [p0, p1] in np.argwhere(bomb_flame == 1).tolist():
+        #                 reward += r_um_bomb
+        #                 # print('um2')
+        #         # if [p0, p1] == pos_bomb.tolist()[i]:
+        #         #     reward += r_um_bomb
+        #
+        # # reward_n_move
+        # if (p0, p1) == (position0, position1):
+        #     reward += r_n_move
+        #     # print('n_m')
+        #
+        # # reward_suicide
+        # if [position0, position1] in np.argwhere(flame == 1).tolist():
+        #     reward += r_s
+        #     # print('in_f1')
+        #     if [p0, p1] in np.argwhere(flame == 1).tolist():
+        #         reward += r_s
+        #         # print('in_f2')
+        # # lay bomb
+        # if int(action) == 5:
+        #     reward += r_put_bomb
+        #     if (p0, p1) == (position0, position1):
+        #         reward += r_n_move*2
 
         # reward_win_fail
-        # if rewards == 1:
-        #     reward += r_win
-        # if rewards == -1:
-        #     reward += r_fail
+        if rewards == 1:
+            reward += r_win
+        if rewards == -1:
+            reward += r_fail
 
         # # reward_powerup
         # sammo = int(sa[2].item())
@@ -355,9 +330,6 @@ class DQN2Agent(BaseAgent):
         action_index = actions.squeeze(-2)
         curr_Q_batch = self.eval_net(statesl, statesa)  # [:,0]
         curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
-        print('curr_Q:')
-        print(curr_Q)
-        print(curr_Q.detach().numpy().shape)
         next_batch = self.target_net(next_statesl, next_statesa).detach()  # [:,0]
         next_Q = torch.max(next_batch, 1)[0]
 
@@ -372,26 +344,19 @@ class DQN2Agent(BaseAgent):
 
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
         expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
+        # expected_Q = gamma * next_Q + rewards_batch
         # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
         # Q_target = rewards_batch + gamma * next_Q
-        print('exp_Q:')
-        print(expected_Q)
-        print(expected_Q.detach().numpy().shape)
-        print('-------------------------------------------')
-
-
         # loss = self.MSE_loss(curr_Q, expected_Q[0])  # TODO: try Huber Loss later too
         loss = self.MSE_loss(curr_Q, expected_Q[0])
 
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
-        # print('curr_Q:')
-        # print(curr_Q)
-        # print('expected_Q')
-        # print(expected_Q)
+
+        return expected_Q[0], rewards_batch, loss
 
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
