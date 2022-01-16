@@ -1,4 +1,5 @@
 from pommerman.agents.simple_agent import SimpleAgent
+from pommerman.agents.random_agent import RandomAgent
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -23,6 +24,7 @@ class DQN2Agent(BaseAgent):
         super(DQN2Agent, self).__init__(character)
         self.obs_n = env.observation_space.shape[0]  # output_dim
         self.action_n = 6  # input_dim
+        self.action_space = [0,1,2,3,4,5]
         self.env = env
 
         self.epsilon = args.epsilon
@@ -60,7 +62,8 @@ class DQN2Agent(BaseAgent):
         return qvals
 
     def act(self, obs, action_space):
-        return self.baseAgent.act(obs,self.action_n)
+        return random.randrange(0,6,1)
+        #return self.baseAgent.act(obs,self.action_n)
 
     def dqnact(self, obs):
         #action = self.eval_net.forward(obs)[0]
@@ -80,6 +83,8 @@ class DQN2Agent(BaseAgent):
         r_fail = -1
         r_kick = 0.2
         r_hit = -0.2
+        r_stay_in_danger = -0.2
+        r_escape = 0.2
 
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
@@ -87,6 +92,7 @@ class DQN2Agent(BaseAgent):
         power_up = featurel[3]
         fog = featurel[4]
         agent1 = featurel[5].numpy()
+        sagent1 = sl[5].numpy()
         agent2 = featurel[6].numpy()
         agent3 = featurel[7].numpy()
         agent4 = featurel[8].numpy()
@@ -95,7 +101,7 @@ class DQN2Agent(BaseAgent):
         position1 = int(featurea[1].item())
         p0 = int(sa[0].item())
         p1 = int(sa[1].item())
-        ammo = int(featurea[2].item())
+        ammo = int(sa[2].item())
         blast_strength = int(featurea[3].item())
         can_kick = int(featurea[4].item())
         teammate = int(featurea[5].item())
@@ -124,30 +130,46 @@ class DQN2Agent(BaseAgent):
             reward += r_fail
 
         # reward_powerup
-        sammo = int(sa[2].item())
-        if ammo > 1 and ammo > sammo:
-            reward += r_powerup
-        sstrength = int(sa[3].item())
-        if blast_strength > sstrength:
-            reward += r_powerup
-        skick = int(sa[4].item())
-        if can_kick and not skick:
-            reward += r_powerup
+        # sammo = int(sa[2].item())
+        # if ammo > 1 and ammo > sammo:
+        #     reward += r_powerup
+        # sstrength = int(sa[3].item())
+        # if blast_strength > sstrength:
+        #     reward += r_powerup
+        # skick = int(sa[4].item())
+        # if can_kick and not skick:
+        #     reward += r_powerup
 
         # reward_wood
-        if int(action) == 5:
-            reward += 0.01
+        if ammo > 0 and action == 5:
             bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
             num_wood = np.count_nonzero(wood*bomb_flame == 1)
             reward += num_wood*r_wood
+
         # reward_kick
-        if sbomb[position0, position1] == 1 and rewards != -1:
-            reward += r_kick
+        # if sbomb[position0, position1] == 1 and rewards != -1:
+        #     reward += r_kick
         # reward_hit_wood
-        if action>0 or action<5:
+        if action>0 and action<5:
             if (p0,p1) == (position0,position1):
                 reward += r_hit
-        # reward_die
+        
+        # reward_escape
+        bomb_list = []
+        for i in range(11):
+            for j in range(11):
+                if sbomb[i,j] == 1:
+                    bomb_list.append((i,j))
+        
+        for b in bomb_list:
+            bomb_flame1 = self.build_flame(b[0], b[1], rigid, 8)
+            if bomb_flame1[position0, position1] == 1:
+                reward += r_stay_in_danger
+                #print(bomb_flame1)
+
+            
+        
+        # reward escape from bomb
 
         """
         exist_bomb = []
@@ -231,12 +253,9 @@ class DQN2Agent(BaseAgent):
         #print(action_index)
         curr_Q_batch = self.eval_net(statesl, statesa)#[:,0]
         curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
-        #print(curr_Q)
         
         next_batch = self.target_net(next_statesl, next_statesa)#[:,0]
         next_Q = torch.max(next_batch,1)[0]
-        #print(next_Q)
-
         #计算reward
         computed_reward = []
         for l, a, action, sl, sa, re in zip(next_statesl, next_statesa, actions, statesl, statesa, rewards):
@@ -248,11 +267,10 @@ class DQN2Agent(BaseAgent):
         
         rewards_batch = computed_reward
         #print(rewards_batch)
-
-
+        
+        
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
         expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
-
         # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
@@ -314,8 +332,6 @@ class Net2(nn.Module):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
         lx = lx.unsqueeze(0)
-        #lx = lx.unsqueeze(3)
-        #x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)
         ax = ax.unsqueeze(0)
