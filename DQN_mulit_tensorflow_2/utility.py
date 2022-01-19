@@ -2,6 +2,7 @@ import numpy as np
 
 
 def reward_shaping(current_state, new_state, action, result, action_list):
+
     r_win = 1
     r_lose = -1
 
@@ -11,7 +12,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
 
     r_lay_bomb = -0.005
     r_lay_bomb_near_enemy = 0.2
-    r_get_away_from_bomb = 0.002
+    r_get_away_from_bomb = 0.005
     r_get_close_to_bomb = -0.01
 
     r_avoid = 0.001
@@ -67,7 +68,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward += r_move
             reward = check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end)
             reward = check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids, reward,
-                                          r_ignore_penalty)
+                                         r_ignore_penalty)
         reward = check_move_loop(action_list, reward, r_move_loop)
         reward = check_power_up(new_X, new_Y, current_state, reward, r_powerup)
         reward = check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
@@ -83,7 +84,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward += r_move
             reward = check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end)
             reward = check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids, reward,
-                                          r_ignore_penalty)
+                                         r_ignore_penalty)
         reward = check_move_loop(action_list, reward, r_move_loop)
         reward = check_power_up(new_X, new_Y, current_state, reward, r_powerup)
         reward = check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
@@ -99,7 +100,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward += r_move
             reward = check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end)
             reward = check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids, reward,
-                                          r_ignore_penalty)
+                                         r_ignore_penalty)
         reward = check_move_loop(action_list, reward, r_move_loop)
         reward = check_power_up(new_X, new_Y, current_state, reward, r_powerup)
         reward = check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
@@ -115,7 +116,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward += r_move
             reward = check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end)
             reward = check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids, reward,
-                                          r_ignore_penalty)
+                                         r_ignore_penalty)
         reward = check_move_loop(action_list, reward, r_move_loop)
         reward = check_power_up(new_X, new_Y, current_state, reward, r_powerup)
         reward = check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
@@ -436,164 +437,61 @@ def check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids
             current_state["ammo"] != 0:
         reward += r_ignore_penalty
         power = True
-    if power is False and (2 in current_grids) and (5 not in action_list) and current_state["ammo"] != 0:
-        reward += r_ignore_penalty
+    # if power is False and (2 in current_grids) and (5 not in action_list) and current_state["ammo"] != 0:
+    #     reward += r_ignore_penalty
 
     return reward
 
-
 def featurize2D(states):
-    feature2D = []
+
     # 共18个矩阵
-    # 11
-    for board in rebuild_board(states["board"]):
-        feature2D.append(board)
+    shape = (11, 11)
 
-    feature2D.append(states["bomb_blast_strength"].tolist())
-    feature2D.append(states["bomb_life"].tolist())
-    feature2D.append(states["bomb_moving_direction"].tolist())
-    feature2D.append(states["flame_life"].tolist())
+    # path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
+    def get_matrix(board, key):
+        res = board[key]
+        return res.reshape(shape).astype(np.float64)
 
-    ammo_2D, blast_strength_2D, can_kick_2D = rebuild_1D_element(states)
+    def get_map(board, item):
+        map = np.zeros(shape)
+        map[board == item] = 1
+        return map
 
-    feature2D.append(ammo_2D)
-    feature2D.append(blast_strength_2D)
-    feature2D.append(can_kick_2D)
+    board = get_matrix(states, "board")
 
-    return np.array(feature2D)
-
-
-def rebuild_board(board):
-    # 将board中数据分离，2D化
-    path = []
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 0:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        path.append(new_row)
-
-    rigid = []
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 1:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        rigid.append(new_row)
-
-    wood = []
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 2:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        wood.append(new_row)
-
-    bomb = []
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 3:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        bomb.append(new_row)
-
-    flame = []
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 4:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        flame.append(new_row)
-    """
-    暂时用不到fog
-    fog =[]
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 4:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        fog.append(new_row)
-    """
-
-    fog = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], ]
+    path = get_map(board, 0)
+    rigid = get_map(board, 1)
+    wood = get_map(board, 2)
+    bomb = get_map(board, 3)
+    flame = get_map(board, 4)
+    fog = get_map(board, 5)
+    agent1 = get_map(board, 10)
+    agent2 = get_map(board, 11)
+    agent3 = get_map(board, 12)
+    agent4 = get_map(board, 13)
 
     power_up = []
     for row in board:
         new_row = []
         for num in row:
             if num == 6 or num == 7 or num == 8:
-                new_row.append(2)
+                new_row.append(1)
             else:
                 new_row.append(0.0)
         power_up.append(new_row)
 
-    agent1 = []
-    # 如果是10为此处为agent,则取1.0
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 10:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        agent1.append(new_row)
 
-    agent2 = []
-    # 如果是11为此处为agent,则取1.0
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 11:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        agent2.append(new_row)
+    bomb_blast_strength = get_matrix(states, 'bomb_blast_strength')
+    bomb_life = get_matrix(states, 'bomb_life')
+    bomb_moving_direction = get_matrix(states, 'bomb_moving_direction')
+    flame_life = get_matrix(states, 'flame_life')
 
-    agent3 = []
-    # 如果是12为此处为agent,则取1.0
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 12:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        agent3.append(new_row)
+    ammo_2D, blast_strength_2D, can_kick_2D = rebuild_1D_element(states)
 
-    agent4 = []
-    # 如果是13为此处为agent,则取1.0
-    for row in board:
-        new_row = []
-        for num in row:
-            if num == 13:
-                new_row.append(1.0)
-            else:
-                new_row.append(0.0)
-        agent4.append(new_row)
+    feature2D = [path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4, bomb_blast_strength,
+                 bomb_life, bomb_moving_direction, flame_life, ammo_2D, blast_strength_2D, can_kick_2D]
 
-    return path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
+    return np.array(feature2D)
 
 
 def rebuild_1D_element(states):

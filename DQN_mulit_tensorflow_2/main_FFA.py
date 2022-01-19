@@ -1,11 +1,11 @@
-import random
+
 import constants
 import pommerman
 import numpy as np
 import pandas as pd
 
-# from DQNAgent import DQNAgent
-from DQNAgent_modified import DQNAgent
+#from DQNAgent_modified import DQNAgent
+from DQNAgent_modified_nhwc import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
 
@@ -17,7 +17,7 @@ def main():
     agent4 = SimpleAgent()
 
     agent_list = [agent1, agent2, agent3, agent4]
-    env = pommerman.make('PommeRadioCompetition-v2', agent_list)
+    env = pommerman.make('PommeFFACompetitionFast-v0', agent_list)
 
     episode_rewards = []  # 记录平均reward
 
@@ -28,13 +28,13 @@ def main():
     result_to_csv = []
 
     total_numOfSteps = 0
-    episode = 5000
+    episode = 0
+
 
     while True:
 
         current_state = env.reset()
         # 将state 转化 1D array
-        state_feature = featurize2D(current_state[0])
 
         episode_reward = 0
         numOfSteps = 0
@@ -43,18 +43,19 @@ def main():
 
         while not done:
 
+            state_feature = featurize2D(current_state[0])
             numOfSteps += 1
             total_numOfSteps += 1
 
-            if constants.epsilon > np.random.random():
+            if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
+            #if constants.epsilon > np.random.random():
                 # 获取动作
                 actions = env.act(current_state)
                 actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
-                actions[0] = [0, 2, 2]
             else:
                 # 随机动作
                 actions = env.act(current_state)
-                actions[0] = random.randint(0, 5)
+                # actions[0] = random.randint(0, 5)
 
             new_state, result, done, info = env.step(actions)
 
@@ -62,8 +63,9 @@ def main():
                 done = True
 
             # reward_shaping
-            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0])
-
+            agent1.buffer.append_action(actions[0])
+            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
+            # print("reward: ",reward)
             next_state_feature = featurize2D(new_state[0])
             episode_reward += reward
 
@@ -72,10 +74,10 @@ def main():
             # env.render()
 
             # 储存记忆
-            # agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
+            agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
 
             # 学习!
-            # agent1.train()
+            agent1.train()
 
             # 更新state
             current_state = new_state
@@ -125,12 +127,12 @@ def main():
                     win_rate,
                     draw_rate))
 
-        agent1.epsilon_decay()
+        # agent1.epsilon_decay()
 
         agent1.save_weights(episode)
 
         # 记录结果，留作图表
-        if episode % 500 == 0:
+        if episode % 100 == 0:
             df_reward = pd.DataFrame({"reward": reward_to_csv})
             df_reward.to_csv("reward.csv", index=False, mode="a", header=False)
             print("successfully saved reward")

@@ -1,15 +1,12 @@
-import random
+
 import constants
 import pommerman
 import numpy as np
-import tensorflow as tf
-import pandas as pd
 
-# from DQNAgent import DQNAgent
-from DQNAgent_modified import DQNAgent
+from DQNAgent_modified_nhwc import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
-
+#from DQNAgent_radio import DQNAgent
 
 def main():
     agent1 = DQNAgent()
@@ -18,8 +15,8 @@ def main():
     agent4 = SimpleAgent()
 
     agent_list = [agent1, agent2, agent3, agent4]
+    #env = pommerman.make("PommeRadioCompetition-v2", agent_list)
     env = pommerman.make("PommeFFACompetitionFast-v0", agent_list)
-
     episode_rewards = []  # 记录平均reward
 
     win = 0
@@ -30,19 +27,21 @@ def main():
 
     total_numOfSteps = 0
     episode = 0
-    while True:
+    #while True:
+    for i in range(1):
 
-        #random.seed(1)
+        # random.seed(1)
         # np.random.seed(1)
         current_state = env.reset()
-        #random.seed(None)
+        # random.seed(None)
         # 将state 转化 1D array
-
 
         episode_reward = 0
         numOfSteps = 0
         episode += 1
         done = False
+
+        #agent1.save_model()
 
         while not done:
 
@@ -54,17 +53,16 @@ def main():
             #     actions = env.act(current_state)
             #     actions[0] = 5
             #     print("BOMB!")
-            #if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
-            if constants.epsilon > np.random.random():
-                # 获取动作
-                actions = env.act(current_state)
-                actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
-                print("action: ", actions[0])
-            else:
-                # 随机动作
-                actions = env.act(current_state)
-                print("simple: ", actions[0])
-                # actions[0] = random.randint(0, 5)
+            # if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
+            # if constants.epsilon > np.random.random():
+            #     # 获取动作
+            actions = env.act(current_state)
+            actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
+            # else:
+            #     # 随机动作
+            #     actions = env.act(current_state)
+            #     print("simple: ", actions[0])
+            #     # actions[0] = random.randint(0, 5)
 
             new_state, result, done, info = env.step(actions)
 
@@ -73,20 +71,22 @@ def main():
 
             # reward_shaping
             agent1.buffer.append_action(actions[0])
-            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0],agent1.buffer.buffer_action )
+            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
+
+            #print("action: ", actions[0], "step_reward: ", reward)
             #print("step reward: ",reward)
             next_state_feature = featurize2D(new_state[0])
-            episode_reward += reward
+            #episode_reward += reward
 
             # 每一定局数显示游戏画面
             # if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
             env.render()
 
             # 储存记忆
-            #agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
+            agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
 
             # 学习!
-            #agent1.train()
+            agent1.train()
 
             # 更新state
             current_state = new_state
@@ -132,8 +132,8 @@ def main():
                     win_rate,
                     draw_rate))
 
-        agent1.save_weights(episode)
-
+        #agent1.save_weights(episode)
+        agent1.save_model()
     env.close()
 
 
