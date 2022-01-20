@@ -51,6 +51,8 @@ class DQNAgent(BaseAgent):
         model.summary()
         return model
 
+
+
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, Discrete(6))
 
@@ -58,15 +60,15 @@ class DQNAgent(BaseAgent):
 
         if self.buffer.size() < constants.MIN_REPLAY_MEMORY_SIZE:
             return
-
+        
         current_states, action, reward, new_states, done = self.buffer.sample_element(constants.MINIBATCH_SIZE)
 
         # 在样品中取 current_states, 从模型中获取Q值
         current_states_q = self.training_model.predict(current_states)
-
+        double_new_q = self.training_model.predict(new_states)
         # 在样品中取 next_state, 从旧网络中获取Q值
         new_states_q = self.trained_model.predict(new_states)
-
+        
         # X为state，Y为所预测的action
         states = []
         actions = []
@@ -76,6 +78,7 @@ class DQNAgent(BaseAgent):
             if done[index] != True:
                 # 更新Q值
                 new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
+                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_q[index])]
             else:
                 new_state_q = reward[index]
             # 在给定的states下更新Q值

@@ -3,7 +3,7 @@ import constants
 import pommerman
 import numpy as np
 
-from DQNAgent_modified_nhwc import DQNAgent
+from DQNAgent_ddqn import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
 #from DQNAgent_radio import DQNAgent
