@@ -1,4 +1,5 @@
 from pommerman.agents.simple_agent import SimpleAgent
+from pommerman.agents.random_agent import RandomAgent
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -9,6 +10,7 @@ import random
 import gym
 import numpy as np
 from utils import featurize, featurize2
+import os
 
 from pommerman.agents import BaseAgent
 from replay_buffer import ReplayBuffer, ReplayBuffer2
@@ -22,6 +24,7 @@ class DQN2Agent(BaseAgent):
         super(DQN2Agent, self).__init__(character)
         self.obs_n = env.observation_space.shape[0]  # output_dim
         self.action_n = 6  # input_dim
+        self.action_space = [0,1,2,3,4,5]
         self.env = env
 
         self.epsilon = args.epsilon
@@ -59,7 +62,8 @@ class DQN2Agent(BaseAgent):
         return qvals
 
     def act(self, obs, action_space):
-        return self.baseAgent.act(obs,self.action_n)
+        return random.randrange(0,6,1)
+        #return self.baseAgent.act(obs,self.action_n)
 
     def dqnact(self, obs):
         #action = self.eval_net.forward(obs)[0]
@@ -70,59 +74,103 @@ class DQN2Agent(BaseAgent):
         result = (torch.max(action, 0)[1]).numpy()
         return result
 
-    def reward(self, featurel, featurea, action, sl, sa):
+    def reward(self, featurel, featurea, action, sl, sa, rewards):
         # set up reward
-        r_wood = 0.1
+        r_wood = 0.05
+        r_powerup = 0.2
+        r_put_bomb = 0.08
+        r_win = 0.5
+        r_fail = -1
+        r_kick = 0.2
+        r_hit = -0.2
+        r_stay_in_danger = -0.2
+        r_escape = 0.2
 
         rigid = featurel[0].numpy()
         wood = featurel[1].numpy()
-        bomb = featurel[2]
-        agents = featurel[4]
+        bomb = featurel[2].numpy()
         power_up = featurel[3]
+        fog = featurel[4]
+        agent1 = featurel[5].numpy()
+        sagent1 = sl[5].numpy()
+        agent2 = featurel[6].numpy()
+        agent3 = featurel[7].numpy()
+        agent4 = featurel[8].numpy()
+        flame = featurel[9]
         position0 = int(featurea[0].item())
         position1 = int(featurea[1].item())
-        ammo = int(featurea[2].item())
+        p0 = int(sa[0].item())
+        p1 = int(sa[1].item())
+        ammo = int(sa[2].item())
         blast_strength = int(featurea[3].item())
         can_kick = int(featurea[4].item())
         teammate = int(featurea[5].item())
         enemies = int(featurea[6].item())
+        message = int(featurea[7].item())
+        rewards = rewards.numpy()
         reward = 0
         #sagents = sl[4]
-        #sbombs = sl[2]
-        # reward_ammo
-        sammo = int(sa[2].item())
-        if ammo > 2 and ammo > sammo:
-            reward += 0.3
-        #reward_strength
-        sstrength = int(sa[3].item())
-        if blast_strength > sstrength:
-            reward += 0.3
-        #reward_kick
-        skick = int(sa[4].item())
-        if can_kick and not skick:
-            reward += 0.3
+        sbomb = sl[2].numpy()
+        action = int(action.item())
+
+
+
+        # print(agent1)
+        # print(p0, p1)
+        # print(position0, position1)
+        # print('len:', len(agent1))
+        # print('shape:', agent1.shape)
+        # print('-------------------')
+        # # reward_done
+        # # print(rewards)
+
+        if rewards == 1:
+            reward += r_win
+        if rewards == -1:
+            reward += r_fail
+
+        # reward_powerup
+        # sammo = int(sa[2].item())
+        # if ammo > 1 and ammo > sammo:
+        #     reward += r_powerup
+        # sstrength = int(sa[3].item())
+        # if blast_strength > sstrength:
+        #     reward += r_powerup
+        # skick = int(sa[4].item())
+        # if can_kick and not skick:
+        #     reward += r_powerup
+
         # reward_wood
-        if int(action[0].item()) == 5:
-            reward += 0.01
+        if ammo > 0 and action == 5:
             bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
             num_wood = np.count_nonzero(wood*bomb_flame == 1)
             reward += num_wood*r_wood
-            '''
-            # test
-            print('rigid')
-            print(rigid)
-            print('position_bomb')
-            print(position_bomb)
-            print('f')
-            print(f)
-            print('l')
-            print(l)
-            print('bomb_flame')
-            print(bomb_flame)
-            print('num_wood')
-            print(num_wood)
-            print('-------------------------------------')
-            '''
+
+        # reward_kick
+        # if sbomb[position0, position1] == 1 and rewards != -1:
+        #     reward += r_kick
+        # reward_hit_wood
+        if action>0 and action<5:
+            if (p0,p1) == (position0,position1):
+                reward += r_hit
+        
+        # reward_escape
+        bomb_list = []
+        for i in range(11):
+            for j in range(11):
+                if sbomb[i,j] == 1:
+                    bomb_list.append((i,j))
+        
+        for b in bomb_list:
+            bomb_flame1 = self.build_flame(b[0], b[1], rigid, 8)
+            if bomb_flame1[position0, position1] == 1:
+                reward += r_stay_in_danger
+                #print(bomb_flame1)
+
+            
+        
+        # reward escape from bomb
+
         """
         exist_bomb = []
         for row, rowbomb in enumerate(bomb):
@@ -190,23 +238,7 @@ class DQN2Agent(BaseAgent):
                 f[3] = rigid_right - n - 1
         bomb_flame[m-f[0]:m+f[1]+1, n] = 1
         bomb_flame[m, n-f[2]:n+f[3]+1] = 1
-        
-        '''
-        # test
-        print('rigid')
-        print(rigid)
-        print('position_bomb')
-        print(position_bomb)
-        print('f')
-        print(f)
-        print('l')
-        print(l)
-        print('bomb_flame')
-        print(bomb_flame)
-        print('num_wood')
-        print(num_wood)
-        print('-------------------------------------')
-        '''
+
         return bomb_flame
 
     def update(self, gamma, batch_size):
@@ -215,39 +247,35 @@ class DQN2Agent(BaseAgent):
         self.learn_step_counter += 1
 
         statesl, statesa, actions, rewards, next_statesl, next_statesa, done = self.buffer.sample(batch_size)
+        #print(rewards)
         #print(actions)
-        #action_index = actions.squeeze(-2)[:,0].unsqueeze(1)
+        action_index = actions.squeeze(-2)
         #print(action_index)
         curr_Q_batch = self.eval_net(statesl, statesa)#[:,0]
-        curr_Q = curr_Q_batch.gather(1, actions.type(torch.int64)).squeeze(-1)
-        #print(curr_Q)
+        curr_Q = curr_Q_batch.gather(1, action_index.type(torch.int64)).squeeze(-1)
         
         next_batch = self.target_net(next_statesl, next_statesa)#[:,0]
         next_Q = torch.max(next_batch,1)[0]
-        #print(next_Q)
-
         #计算reward
         computed_reward = []
-        for l, a, action, sl, sa in zip(next_statesl, next_statesa, actions, statesl, statesa):
-            computed_reward.append(self.reward(l, a, action, sl, sa))
+        for l, a, action, sl, sa, re in zip(next_statesl, next_statesa, actions, statesl, statesa, rewards):
+            computed_reward.append(self.reward(l, a, action, sl, sa, re))
+
+
         #这是得到的reward
         computed_reward = torch.tensor(computed_reward)
-        rewards_batch = rewards.squeeze(-2)
-        for reward in rewards_batch:
-            if reward == -1:
-                reward *= 10
-        rewards_batch = rewards_batch + computed_reward
+        
+        rewards_batch = computed_reward
         #print(rewards_batch)
-
-
+        
+        
         # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
         expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
-
         # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
         # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
         # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
         loss = self.MSE_loss(curr_Q, expected_Q[0]) # TODO: try Huber Loss later too
-
+        # print('loss:', loss)
         self.optim.zero_grad()
         loss.backward()
         self.optim.step()
@@ -255,12 +283,25 @@ class DQN2Agent(BaseAgent):
     def epsdecay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_eps else self.epsilon
 
+    # def lrdecay(self,epi):
+    #     epi = self.epi
+    #     self.lr = self.lr * self.lr_decay ** (epi) if s
+
+    def save_model(self):
+        torch.save({'dqn2Net': self.eval_net.state_dict(),'optimizer2_state_dict': self.optim.state_dict()}, 'model_dqn2.pt')
+    
+    def load_model(self):
+        if os.path.exists('model_dqn2.pt'):
+            state_dict = torch.load('model_dqn2.pt')
+            self.eval_net.load_state_dict(state_dict['dqn2Net'])
+            self.optim.load_state_dict(state_dict['optimizer2_state_dict'])
+            self.target_net.load_state_dict(self.eval_net.state_dict())
 
 class Net2(nn.Module):
     def __init__(self,env):
         super(Net2,self).__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(13,32,2,stride=1,padding=1),
+            nn.Conv2d(14,32,2,stride=1,padding=1),
             nn.ReLU(),
             nn.Conv2d(32,64,3,stride=1,padding=1),
             nn.ReLU(),
@@ -291,8 +332,6 @@ class Net2(nn.Module):
         lx = torch.FloatTensor(lx)
         ax = torch.FloatTensor(ax)
         lx = lx.unsqueeze(0)
-        #lx = lx.unsqueeze(3)
-        #x = torch.unsqueeze(x, dim=0).float()
         lx = self.features(lx)
         lx = lx.view(lx.size(0), -1)
         ax = ax.unsqueeze(0)
