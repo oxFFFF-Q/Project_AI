@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 #from DQNAgent_modified import DQNAgent
-from DQNAgent_modified_nhwc import DQNAgent
+from DQNAgent_ddqn import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
 
