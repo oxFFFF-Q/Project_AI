@@ -1,3 +1,4 @@
+import tensorflow.keras as keras
 from keras.layers import Dense, Flatten, Conv2D
 from keras import Sequential
 from tensorflow.keras.optimizers import Adam
@@ -31,6 +32,8 @@ class DQNAgent(BaseAgent):
         self.eps_decay = constants.EPSILON_DECAY
         self.buffer = replay_Memory(constants.MAX_BUFFER_SIZE)
         self.update_counter = 0
+        self.V = keras.layers.Dense(1,activation=None)
+        self.A = keras.layers.Dense(6,activation=None)
 
     def new_model(self):
 
@@ -51,15 +54,18 @@ class DQNAgent(BaseAgent):
         model.summary()
         return model
 
-    def dueling(self, model):
-        state_value = tf.layers.Dense(n_units=1)(model)
+    def dueling(self, state):
+        V = self.V(state)
         # advantage value
-        q_value = tf.layers.Dense(n_units=6)(model)
-        mean = tf.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1, keepdims=True))(q_value)
-        advantage = tf.layers.ElementwiseLambda(lambda x, y: x-y)([q_value, mean])
+        A = self.A(state)
+        mean = tf.math.reduce_mean(A, axis=1, keepdims=True)
         # output
-        output_layer = tf.layers.ElementwiseLambda(lambda x, y: x+y)([state_value, advantage])
-        return output_layer
+        output = V + (A - mean)
+        return output
+    
+    def advantage(self, state):
+        A = self.A(state)
+        return A
 
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, Discrete(6))
@@ -74,10 +80,10 @@ class DQNAgent(BaseAgent):
         current_states, action, reward, new_states, done = self.buffer.sample_element(constants.MINIBATCH_SIZE)
 
         # 在样品中取 current_states, 从模型中获取Q值
-        current_states_q = self.dueling(self.training_model).predict(current_states)
-        double_new_q = self.dueling(self.training_model).predict(new_states)
+        current_states_q = self.dueling(self.training_model.predict(current_states))
+        double_new_q = self.dueling(self.training_model.predict(new_states))
         # 在样品中取 next_state, 从旧网络中获取Q值
-        new_states_q = self.dueling(self.trained_model).predict(new_states)
+        new_states_q = self.dueling(self.trained_model.predict(new_states))
         
         # X为state，Y为所预测的action
         states = []
@@ -87,13 +93,14 @@ class DQNAgent(BaseAgent):
 
             if done[index] != True:
                 # 更新Q值
-                new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
+                #new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
                 double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_q[index])]
             else:
-                new_state_q = reward[index]
+                #new_state_q = reward[index]
+                double_new_q = reward[index]
             # 在给定的states下更新Q值
             current_better_q = current_states_q[index]
-            current_better_q[action[index]] = new_state_q
+            current_better_q[action[index]] = double_new_q
 
             # 添加训练数据
             states.append(current_states[index])
@@ -119,7 +126,7 @@ class DQNAgent(BaseAgent):
 
     def action_choose(self, state):
         state_reshape = tf.reshape(state, (-1, 18, 11, 11))
-        q_table = self.training_model.predict(state_reshape)
+        q_table = self.advantage(self.training_model.predict(state_reshape))
         return q_table
         # epsilon衰减
 
