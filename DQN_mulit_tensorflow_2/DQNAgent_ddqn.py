@@ -13,6 +13,49 @@ from replay_memory import replay_Memory
 import numpy as np
 import tensorflow as tf
 
+class Dueling_Model(tf.keras.Model):
+    def __init__(self, **kwargs):
+        super(Dueling_Model, self).__init__(**kwargs)
+        
+        self.c1 = keras.layers.Conv2D(256, 3, (1, 1), input_shape=(constants.MINIBATCH_SIZE, 18, 11, 11,)[1:], activation="relu", data_format="channels_first",
+                         padding="same")
+        self.c2 = keras.layers.Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same")
+    
+        self.c3 = keras.layers.Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same")
+
+        self.flatten = keras.layers.Flatten()
+        self.l1 = keras.layers.Dense(128, activation="relu")
+        self.l2 = keras.layers.Dense(64, activation='linear')
+        
+        self.V = keras.layers.Dense(1,activation=None)
+        self.A = keras.layers.Dense(6,activation=None)
+        
+
+    def call(self, inputs):
+        x = self.c1(inputs)
+        x = self.c2(x)
+        x = self.c3(x)
+        x = self.flatten(x)
+        x = self.l1(x)
+        x = self.l2(x)
+        
+        V = self.V(x)
+        # advantage value
+        A = self.A(x)
+        mean = tf.math.reduce_mean(A, axis=1, keepdims=True)
+        # output
+        output = V + (A - mean)
+        return output
+    
+    def advantage(self, state):
+        x = self.c1(state)
+        x = self.c2(x)
+        x = self.c3(x)
+        x = self.flatten(x)
+        x = self.l1(x)
+        x = self.l2(x)
+        A = self.A(x)
+        return A
 
 class DQNAgent(BaseAgent):
     """DQN second try with keras"""
@@ -21,8 +64,8 @@ class DQNAgent(BaseAgent):
         super(DQNAgent, self).__init__(character)
         self.baseAgent = SimpleAgent()
 
-        self.training_model = self.new_model()
-        self.trained_model = self.new_model()
+        self.training_model = Dueling_Model()
+        self.trained_model = Dueling_Model()
 
         self.trained_model.set_weights(self.training_model.get_weights())
         #self.load_weights()
@@ -32,40 +75,11 @@ class DQNAgent(BaseAgent):
         self.eps_decay = constants.EPSILON_DECAY
         self.buffer = replay_Memory(constants.MAX_BUFFER_SIZE)
         self.update_counter = 0
-        self.V = keras.layers.Dense(1,activation=None)
-        self.A = keras.layers.Dense(6,activation=None)
+        
+        self.training_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
+        self.trained_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
 
-    def new_model(self):
-
-        model = Sequential()
-        input_shape = (constants.MINIBATCH_SIZE, 18, 11, 11,)
-        model.add(Conv2D(256, 3, (1, 1), input_shape=input_shape[1:], activation="relu", data_format="channels_first",
-                         padding="same"))
-        # print(model.output_shape)
-        model.add(Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same"))
-        # print(model.output_shape)
-        model.add(Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same"))
-        # print(model.output_shape)
-
-        model.add(Flatten())
-        model.add(Dense(128, activation="relu"))
-        model.add(Dense(64, activation='linear'))
-        model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
-        model.summary()
-        return model
-
-    def dueling(self, state):
-        V = self.V(state)
-        # advantage value
-        A = self.A(state)
-        mean = tf.math.reduce_mean(A, axis=1, keepdims=True)
-        # output
-        output = V + (A - mean)
-        return output
     
-    def advantage(self, state):
-        A = self.A(state)
-        return A
 
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, Discrete(6))
@@ -80,10 +94,11 @@ class DQNAgent(BaseAgent):
         current_states, action, reward, new_states, done = self.buffer.sample_element(constants.MINIBATCH_SIZE)
 
         # 在样品中取 current_states, 从模型中获取Q值
-        current_states_q = self.dueling(self.training_model.predict(current_states))
-        double_new_q = self.dueling(self.training_model.predict(new_states))
+        current_states_q = self.training_model(current_states)
+        double_new_qs = self.training_model(new_states)
+        
         # 在样品中取 next_state, 从旧网络中获取Q值
-        new_states_q = self.dueling(self.trained_model.predict(new_states))
+        new_states_q = self.trained_model(new_states)
         
         # X为state，Y为所预测的action
         states = []
@@ -94,26 +109,29 @@ class DQNAgent(BaseAgent):
             if done[index] != True:
                 # 更新Q值
                 #new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
-                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_q[index])]
+                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_qs[index])]
             else:
                 #new_state_q = reward[index]
                 double_new_q = reward[index]
             # 在给定的states下更新Q值
             current_better_q = current_states_q[index]
+            current_better_q = current_better_q.numpy()
             current_better_q[action[index]] = double_new_q
+            current_better_q = tf.convert_to_tensor(current_better_q)
 
             # 添加训练数据
             states.append(current_states[index])
             actions.append(current_better_q)
+            
 
             # 开始训练
         # 使用专用的数据api，但更慢.
         # states = tf.reshape(states, (-1, 12, 8, 8))
         # train_dataset = tf.data.Dataset.from_tensor_slices((states, actions))
         # self.training_model.fit(train_dataset, verbose=0, shuffle=False)
-
-        self.training_model.fit(np.array(states), np.array(actions), batch_size=constants.MINIBATCH_SIZE, verbose=0,
-                                shuffle=False)
+        
+        
+        self.training_model.train_on_batch(np.array(states), np.array(actions))
 
         # 更新网络更新计数器
         if done:
@@ -126,7 +144,7 @@ class DQNAgent(BaseAgent):
 
     def action_choose(self, state):
         state_reshape = tf.reshape(state, (-1, 18, 11, 11))
-        q_table = self.advantage(self.training_model.predict(state_reshape))
+        q_table = self.training_model.advantage(state_reshape)
         return q_table
         # epsilon衰减
 
