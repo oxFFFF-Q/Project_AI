@@ -98,9 +98,11 @@ def main():
 
             # 选择action
             actions = env.act(states)
-            # if episode > 50:
-            #     actions[0] = agent1.choose_action(state_feature1)
-            actions[0] = agent1.choose_action(state_feature1)
+            if episode > 50:
+                actions[0] = agent1.choose_action(state_feature1)
+            if actions[0] == 5:
+                print('steps:', step)
+            # actions[0] = agent1.choose_action(state_feature1)
             next_state, reward, done, info = env.step(actions)  # n-array with action for each agent
 
             if 10 not in next_state[0]['alive']:
@@ -116,23 +118,27 @@ def main():
             # 先走batch步之后再开始学习
             # if agent1.buffer.size() > args.batch and episode > 50:
             if agent1.buffer.size() > args.batch:
-                Q_value, re, loss = agent1.update(args.gamma, args.batch)
+                expected_Q_0, rewards_batch, loss = agent1.update(args.gamma, args.batch)
             # if episode > args.tryepi and agent1.buffer.size() >= args.batch:
             #     agent3.update(args.gamma, args.batch)
 
-            if done:
-                break
             # agent1 die -> game over
             if 10 not in next_state[0]['alive']:
+                done = True
+            if done:
+                # print('expected_Q_0:')
+                # print(expected_Q_0)
+                # print('rewards_batch:')
+                # print(rewards_batch)
+                # print('loss:')
+                # print(loss)
                 break
+
 
             # 更新state
             states = next_state
 
-        # print('Q:')
-        # print(Q_value)
-        # print('re:')
-        # print(re)
+
         # print('loss:')
         # print(loss)
         # if done:

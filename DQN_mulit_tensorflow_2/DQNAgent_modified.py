@@ -24,7 +24,7 @@ class DQNAgent(BaseAgent):
         self.trained_model = self.new_model()
 
         self.trained_model.set_weights(self.training_model.get_weights())
-        self.load_weights()
+        # self.load_weights()
 
         self.epsilon = constants.epsilon
         self.min_epsilon = constants.MIN_EPSILON
@@ -66,7 +66,7 @@ class DQNAgent(BaseAgent):
         # 在样品中取 current_states, 从模型中获取Q值
         current_states_q = self.training_model.predict(current_states)
         double_new_q = self.training_model.predict(new_states)
-        # 在样品中取 next_state, 从旧网络中获取Q值
+        # 在样品中取 next_state, 从旧网络中获取Q值    traget
         new_states_q = self.trained_model.predict(new_states)
         
         # X为state，Y为所预测的action
@@ -77,13 +77,16 @@ class DQNAgent(BaseAgent):
 
             if done[index] != True:
                 # 更新Q值
-                new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
+                # new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
+                new_state_q = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(new_states_q[index])]
                 double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_q[index])]
             else:
                 new_state_q = reward[index]
+                double_new_q = reward[index]
             # 在给定的states下更新Q值
             current_better_q = current_states_q[index]
-            current_better_q[action[index]] = new_state_q
+            # current_better_q[action[index]] = new_state_q
+            current_better_q[action[index]] = double_new_q
 
             # 添加训练数据
             states.append(current_states[index])

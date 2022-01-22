@@ -121,9 +121,9 @@ class DQN2Agent(BaseAgent):
 
     def reward(self, featurel, featurea, action, sl, sa, rewards):
         # set up reward
-        r_wood = 0.08
-        r_powerup = 0.2
         r_put_bomb = 0.08
+        r_wood = 0.02
+        r_powerup = 0.2
         r_win = 0.5
         r_fail = -0.5
         r_kick = 0.2
@@ -151,8 +151,8 @@ class DQN2Agent(BaseAgent):
         blast_strength = int(featurea[3].item())
         can_kick = int(featurea[4].item())
         teammate = int(featurea[5].item())
-        enemies = int(featurea[6].item())
-        message = int(featurea[7].item())
+        enemies = [int(featurea[6].item()), int(featurea[7].item())]
+        message = [int(featurea[8].item()), int(featurea[9].item())]
         rewards = rewards.numpy()
         reward = 0
         # sagents = sl[4]
@@ -187,17 +187,17 @@ class DQN2Agent(BaseAgent):
         #     if [p0, p1] in np.argwhere(flame == 1).tolist():
         #         reward += r_s
         #         # print('in_f2')
-        # # lay bomb
-        # if int(action) == 5:
-        #     reward += r_put_bomb
+        # lay bomb
+        if int(action) == 5:
+            reward += r_put_bomb
         #     if (p0, p1) == (position0, position1):
         #         reward += r_n_move*2
 
         # reward_win_fail
-        if rewards == 1:
-            reward += r_win
-        if rewards == -1:
-            reward += r_fail
+        # if rewards == 1:
+        #     reward += r_win
+        # if rewards == -1:
+        #     reward += r_fail
 
         # # reward_powerup
         # sammo = int(sa[2].item())
@@ -211,10 +211,11 @@ class DQN2Agent(BaseAgent):
         #     reward += r_powerup
 
         # reward_wood
-        # if int(action) == 5:
-            # bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
-            # num_wood = np.count_nonzero(wood * bomb_flame == 1)
-            # reward += num_wood * r_wood
+        if int(action) == 5:
+            bomb_flame = self.build_flame(position0, position1, rigid, blast_strength)
+            num_wood = np.count_nonzero(wood * bomb_flame == 1)
+            if num_wood != 0:
+                reward += num_wood * r_wood
 
         # # reward_kick
         # if sbomb[position0, position1] == 1 and rewards != -1:
@@ -341,16 +342,15 @@ class DQN2Agent(BaseAgent):
         computed_reward = torch.tensor(computed_reward)
         rewards_batch = computed_reward
 
-
-        # expected_Q = rewards + self.gamma * torch.max(next_Q, 1)
+        # if True not in done:
+        #     expected_Q = gamma * next_Q + rewards_batch
+        # else:
+        #     expected_Q = rewards_batch
         expected_Q = (gamma * next_Q + rewards_batch) * ~done + done * rewards_batch
         # expected_Q = gamma * next_Q + rewards_batch
-        # max_q_prime = next_Q.max(1)[0].unsqueeze(1)
-        # expected_Q = done * (rewards + gamma * max_q_prime) + (1 - done) * 1 / (1 - gamma) * rewards
-        # expected_Q = done * (rewards + gamma * max_q_prime) + 1 / (1 - gamma) * rewards
-        # Q_target = rewards_batch + gamma * next_Q
-        # loss = self.MSE_loss(curr_Q, expected_Q[0])  # TODO: try Huber Loss later too
-        loss = self.MSE_loss(curr_Q, expected_Q[0])
+
+        loss = self.MSE_loss(curr_Q, expected_Q[0])  # TODO: try Huber Loss later too
+        # loss = self.MSE_loss(curr_Q, expected_Q)
 
         self.optim.zero_grad()
         loss.backward()

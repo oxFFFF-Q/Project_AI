@@ -3,8 +3,9 @@ import constants
 import pommerman
 import numpy as np
 import pandas as pd
+import random
 
-#from DQNAgent_modified import DQNAgent
+# from DQNAgent_modified import DQNAgent
 from DQNAgent_ddqn import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
@@ -31,9 +32,12 @@ def main():
     episode = 0
 
 
-    while True:
 
+    while True:
+        random.seed(3)
+        np.random.seed(3)
         current_state = env.reset()
+
         # 将state 转化 1D array
 
         episode_reward = 0
@@ -143,6 +147,7 @@ def main():
             result_to_csv = []
 
     env.close()
+
 
 
 if __name__ == '__main__':

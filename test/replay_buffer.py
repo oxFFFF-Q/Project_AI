@@ -4,11 +4,6 @@ from collections import deque
 import torch
 
 
-# # 可以使用index or name进行访问
-# Experience = collections.namedtuple('Experience',
-#                                     field_names=['state', 'action', 'reward',
-#                                                  'done', 'new_state'])
-
 
 # class ReplayBuffer(object):
 #     """
