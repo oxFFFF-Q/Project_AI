@@ -12,8 +12,10 @@ import constants
 from replay_memory import replay_Memory
 import numpy as np
 import tensorflow as tf
+import tensorlayer as tl
 
 class Dueling_Model(tf.keras.Model):
+    # Dueling DQN
     def __init__(self, **kwargs):
         super(Dueling_Model, self).__init__(**kwargs)
         
@@ -88,41 +90,44 @@ class DQNAgent(BaseAgent):
 
         if self.buffer.size() < constants.MIN_REPLAY_MEMORY_SIZE:
             return
+
         
-        #dueling
-        
-        current_states, action, reward, new_states, done = self.buffer.sample_element(constants.MINIBATCH_SIZE)
+        current_states, action, reward, new_states, done = self.buffer.sample_element_pre(constants.MINIBATCH_SIZE)
 
         # 在样品中取 current_states, 从模型中获取Q值
-        current_states_q = self.training_model(current_states)
-        double_new_qs = self.training_model(new_states)
+        current_states_q = self.training_model.call(current_states)
+        double_new_states_q = self.training_model.call(new_states)
         
         # 在样品中取 next_state, 从旧网络中获取Q值
-        new_states_q = self.trained_model(new_states)
-        
+        new_states_q = self.trained_model.call(new_states)
+
+
         # X为state，Y为所预测的action
         states = []
         actions = []
 
+        target = current_states_q.numpy()
         for index in range(constants.MINIBATCH_SIZE):
 
             if done[index] != True:
-                # 更新Q值
-                #new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
-                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_qs[index])]
+                # 更新Q值, Double DQN
+                #new_state_q = reward[index] + constants.DISCOUNT * (np.max(new_states_q[index]) - current_states_q[index])
+                index_action = np.argmax(double_new_states_q[index])
+                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index, index_action]
             else:
                 #new_state_q = reward[index]
                 double_new_q = reward[index]
+
+
             # 在给定的states下更新Q值
-            current_better_q = current_states_q[index]
-            current_better_q = current_better_q.numpy()
+            current_better_q = current_states_q[index].numpy()
             current_better_q[action[index]] = double_new_q
             current_better_q = tf.convert_to_tensor(current_better_q)
 
             # 添加训练数据
             states.append(current_states[index])
             actions.append(current_better_q)
-            
+
 
             # 开始训练
         # 使用专用的数据api，但更慢.
@@ -142,17 +147,25 @@ class DQNAgent(BaseAgent):
             self.trained_model.set_weights(self.training_model.get_weights())
             self.update_counter = 0
 
+
+
+    def calculate_td_error(self, state):
+        state_reshape = tf.reshape(state, (-1, 18, 11, 11))
+        td_error = self.training_model.advantage(state_reshape) - self.trained_model.advantage(state_reshape)
+        mean_td_error = tf.reduce_mean(td_error)
+        return mean_td_error
+
     def action_choose(self, state):
         state_reshape = tf.reshape(state, (-1, 18, 11, 11))
         q_table = self.training_model.advantage(state_reshape)
         return q_table
-        # epsilon衰减
 
+    # epsilon衰减
     def epsilon_decay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_epsilon else self.epsilon
 
-    def save_weights(self, numOfEpisode):
 
+    def save_weights(self, numOfEpisode):
         # 完成训练后存档参数
         if numOfEpisode % 200 == 0:
             self.training_model.save_weights(('./checkpoints/FFA{:}/FFA{:}'.format(numOfEpisode, numOfEpisode)))
