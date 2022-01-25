@@ -55,6 +55,7 @@ class replay_Memory():
         for i in range(prioritization):
             batch_prioritized.append(buffer_sort[-i-1])
         mini_batch = random.sample(self.buffer, batch_size-prioritization)
+        td = self.buffer_td
         batch = batch_prioritized+mini_batch
         current_state, action, reward, new_states, done, td_error = [], [], [], [], [], []
 

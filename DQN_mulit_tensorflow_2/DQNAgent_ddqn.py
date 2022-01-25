@@ -154,8 +154,7 @@ class DQNAgent(BaseAgent):
 
     def calculate_td_error(self, state):
         state_reshape = tf.reshape(state, (-1, 18, 11, 11))
-        td_error = self.training_model.advantage(state_reshape) - self.trained_model.advantage(state_reshape)
-        a = tf.abs(td_error)
+        td_error = self.training_model.call(state_reshape) - self.trained_model.call(state_reshape)
         mean_td_error = tf.reduce_mean(tf.abs(td_error))
         return mean_td_error
 
@@ -177,8 +176,8 @@ class DQNAgent(BaseAgent):
             print("weights saved!")
 
     def load_weights(self):
-        self.training_model.load_weights('./checkpoints/FFA1200/FFA1200')
-        self.trained_model.load_weights('./checkpoints/FFA1200/FFA1200')
+        self.training_model.load_weights('./checkpoints/FFA200/FFA200')
+        self.trained_model.load_weights('./checkpoints/FFA200/FFA200')
         print("weights loaded!")
 
 
