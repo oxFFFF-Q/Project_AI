@@ -7,6 +7,7 @@ MAX_BUFFER_SIZE = 100_000
 MAX_BUFFER_SIZE_PRE = 1_000_000
 DISCOUNT = 0.95
 MAX_STEPS = constants.MAX_STEPS
+n_step = 5
 
 # Environment settings
 EPISODES = 100000

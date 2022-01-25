@@ -1,6 +1,4 @@
 import tensorflow.keras as keras
-from keras.layers import Dense, Flatten, Conv2D
-from keras import Sequential
 from tensorflow.keras.optimizers import Adam
 from pommerman.agents import BaseAgent
 from pommerman.agents.simple_agent import SimpleAgent
@@ -12,7 +10,7 @@ import constants
 from replay_memory import replay_Memory
 import numpy as np
 import tensorflow as tf
-import tensorlayer as tl
+import torch
 
 class Dueling_Model(tf.keras.Model):
     # Dueling DQN
@@ -77,6 +75,7 @@ class DQNAgent(BaseAgent):
         self.eps_decay = constants.EPSILON_DECAY
         self.buffer = replay_Memory(constants.MAX_BUFFER_SIZE)
         self.update_counter = 0
+        self.n_step = constants.n_step
         
         self.training_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
         self.trained_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
@@ -88,8 +87,12 @@ class DQNAgent(BaseAgent):
 
     def train(self):
 
+
         if self.buffer.size() < constants.MIN_REPLAY_MEMORY_SIZE:
             return
+
+        # if self.buffer.size_n_step() < constants.n_step:
+        #     return
 
         
         current_states, action, reward, new_states, done = self.buffer.sample_element_pre(constants.MINIBATCH_SIZE)
@@ -152,7 +155,8 @@ class DQNAgent(BaseAgent):
     def calculate_td_error(self, state):
         state_reshape = tf.reshape(state, (-1, 18, 11, 11))
         td_error = self.training_model.advantage(state_reshape) - self.trained_model.advantage(state_reshape)
-        mean_td_error = tf.reduce_mean(td_error)
+        a = tf.abs(td_error)
+        mean_td_error = tf.reduce_mean(tf.abs(td_error))
         return mean_td_error
 
     def action_choose(self, state):

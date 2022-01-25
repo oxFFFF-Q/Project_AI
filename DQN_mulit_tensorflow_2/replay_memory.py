@@ -1,19 +1,23 @@
 import random
 import collections
 import numpy as np
-import heapq
-import pickle
+import constants
 
 
 class replay_Memory():
     def __init__(self, MAX_BUFFER_SIZE):
+        self.n_step = constants.n_step
         self.buffer = collections.deque(maxlen=MAX_BUFFER_SIZE)
+        self.buffer_n_step = collections.deque(maxlen=self.n_step)
         self.buffer_action = collections.deque([0, 0, 0, 0], maxlen=4)
         self.buffer_td = collections.deque(maxlen=MAX_BUFFER_SIZE)
         self.alpha = 0.6
 
     def append(self, transition):
         self.buffer.append(transition)
+
+    def append_n_step(self, transition):
+        self.buffer_n_step.append(transition)
 
     def append_action(self, action):
         self.buffer_action.append(action)
@@ -42,11 +46,10 @@ class replay_Memory():
 
     def sample_element_pre(self, batch_size):
         # Prioritized DQN
-        buffer = self.buffer
         index = np.argsort(np.array(self.buffer_td).flatten()).tolist()
-        buffer_sort = buffer
-        for i in range(len(buffer)):
-            buffer_sort[i] = buffer[index[i]]
+        buffer_sort = self.buffer
+        for i in range(len(self.buffer)):
+            buffer_sort[i] = self.buffer[index[i]]
         prioritization = int(batch_size * self.alpha)
         batch_prioritized = []
         for i in range(prioritization):
@@ -74,6 +77,9 @@ class replay_Memory():
 
     def size(self):
         return len(self.buffer)
+
+    def size_n_step(self):
+        return len(self.buffer_n_step)
 
     def save(self):
         current_states = [transition[0] for transition in self.buffer_pre]
