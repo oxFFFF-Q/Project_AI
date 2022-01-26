@@ -96,7 +96,7 @@ class DQNAgent(BaseAgent):
         current_states, action, reward, new_states, done = self.buffer.sample_element(constants.MINIBATCH_SIZE)
 
         # 在样品中取 current_states, 从模型中获取Q值
-        # current_states_q = self.training_model.call(current_states)
+        current_states_q = self.training_model.call(current_states)
         double_states_q = self.training_model.call(new_states)
 
         # 在样品中取 next_state, 从旧网络中获取Q值
@@ -118,7 +118,7 @@ class DQNAgent(BaseAgent):
                 double_new_q = reward[index]
 
             # 在给定的states下更新Q值
-            current_better_q = double_states_q[index].numpy()
+            current_better_q = current_states_q[index].numpy()
             current_better_q[action[index]] = double_new_q
             current_better_q = tf.convert_to_tensor(current_better_q)
 
