@@ -161,8 +161,8 @@ class DQNAgent(BaseAgent):
 
     def load_weights(self):
         # 更改路径中的数字即可读取对应模型参数
-        self.training_model.load_weights('./checkpoints/FFA200/FFA200')
-        self.trained_model.load_weights('./checkpoints/FFA200/FFA200')
+        self.training_model.load_weights('./checkpoints/FFA400/FFA400')
+        self.trained_model.load_weights('./checkpoints/FFA400/FFA400')
         print("weights loaded!")
 
     def save_model(self):
