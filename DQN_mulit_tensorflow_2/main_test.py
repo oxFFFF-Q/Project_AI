@@ -4,6 +4,7 @@ import pommerman
 import numpy as np
 import random
 
+# from DQNAgent_ddqn_pri_nstep import DQNAgent
 from DQNAgent_ddqn import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
@@ -86,9 +87,10 @@ def main():
             env.render()
 
             # td_error
-            td_error = agent1.calculate_td_error(state_feature)
+            # td_error = agent1.calculate_td_error(state_feature)
+            # agent1.buffer.append_td([td_error])
+
             # 储存记忆
-            agent1.buffer.append_td([td_error])
             agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
 
             # 学习!

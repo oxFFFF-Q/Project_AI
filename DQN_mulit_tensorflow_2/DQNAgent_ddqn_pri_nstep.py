@@ -32,7 +32,7 @@ class Dueling_Model(tf.keras.Model):
         self.V = keras.layers.Dense(1, activation=None)
         self.A = keras.layers.Dense(6, activation=None)
 
-    def call(self, inputs: object) -> object:
+    def call(self, inputs):
         x = self.c1(inputs)
         x = self.c2(x)
         x = self.c3(x)
@@ -93,11 +93,11 @@ class DQNAgent(BaseAgent):
         # if self.buffer.size_n_step() < constants.n_step:
         #     return
 
-        current_states, action, reward, new_states, done = self.buffer.sample_element(constants.MINIBATCH_SIZE)
+        current_states, action, reward, new_states, done = self.buffer.sample_element_pre(constants.MINIBATCH_SIZE)
 
         # 在样品中取 current_states, 从模型中获取Q值
-        # current_states_q = self.training_model.call(current_states)
-        double_states_q = self.training_model.call(new_states)
+        current_states_q = self.training_model.call(current_states)
+        double_new_states_q = self.training_model.call(new_states)
 
         # 在样品中取 next_state, 从旧网络中获取Q值
         new_states_q = self.trained_model.call(new_states)
@@ -106,19 +106,20 @@ class DQNAgent(BaseAgent):
         states = []
         actions = []
 
+        target = current_states_q.numpy()
         for index in range(constants.MINIBATCH_SIZE):
 
             if done[index] != True:
                 # 更新Q值, Double DQN
                 # new_state_q = reward[index] + constants.DISCOUNT * (np.max(new_states_q[index]) - current_states_q[index])
-                index_action = np.argmax(double_states_q[index])
+                index_action = np.argmax(double_new_states_q[index])
                 double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index, index_action]
             else:
                 # new_state_q = reward[index]
                 double_new_q = reward[index]
 
             # 在给定的states下更新Q值
-            current_better_q = double_states_q[index].numpy()
+            current_better_q = current_states_q[index].numpy()
             current_better_q[action[index]] = double_new_q
             current_better_q = tf.convert_to_tensor(current_better_q)
 
@@ -143,6 +144,13 @@ class DQNAgent(BaseAgent):
             self.trained_model.set_weights(self.training_model.get_weights())
             self.update_counter = 0
 
+    def calculate_td_error(self, state):
+        # td_error = q_target - q_eval  :tensor(1,6) -> abs(td_error) -> mean(abs(td_error)) : tensor(1)
+        state_reshape = tf.reshape(state, (-1, 18, 11, 11))
+        td_error = self.training_model.call(state_reshape) - self.trained_model.call(state_reshape)
+        mean_td_error = tf.reduce_mean(tf.abs(td_error))
+        return mean_td_error
+
     def action_choose(self, state):
         state_reshape = tf.reshape(state, (-1, 18, 11, 11))
         q_table = self.training_model.advantage(state_reshape)
@@ -160,10 +168,10 @@ class DQNAgent(BaseAgent):
             print("weights saved!")
 
     def load_weights(self):
-        # 更改路径中的数字即可读取对应模型参数
         self.training_model.load_weights('./checkpoints/FFA200/FFA200')
         self.trained_model.load_weights('./checkpoints/FFA200/FFA200')
         print("weights loaded!")
 
     def save_model(self):
         self.training_model.save("./second_model")
+
