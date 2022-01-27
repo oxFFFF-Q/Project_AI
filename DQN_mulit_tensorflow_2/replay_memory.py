@@ -7,11 +7,15 @@ import constants
 class replay_Memory():
     def __init__(self, MAX_BUFFER_SIZE):
         self.n_step = constants.n_step
+        self.epi_buffer = []
         self.buffer = collections.deque(maxlen=MAX_BUFFER_SIZE)
         self.buffer_n_step = collections.deque(maxlen=self.n_step)
         self.buffer_action = collections.deque([0, 0, 0, 0], maxlen=4)
         self.buffer_td = collections.deque(maxlen=MAX_BUFFER_SIZE)
         self.alpha = 0.6
+
+    def append_epi(self, transition):
+        self.epi_buffer.append(transition)
 
     def append(self, transition):
         self.buffer.append(transition)
@@ -24,6 +28,15 @@ class replay_Memory():
 
     def append_td(self, td_error):
         self.buffer_td.append(td_error)
+
+    def reset_epi_buffer(self):
+        self.epi_buffer = []
+
+    def extract_buffer(self):
+        index = int(len(self.epi_buffer)*0.3)
+        self.buffer += self.epi_buffer[-index:]
+
+
 
     def sample(self, batch):
         mini_batch = random.sample(self.buffer, batch)

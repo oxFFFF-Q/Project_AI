@@ -27,7 +27,7 @@ class Dueling_Model(tf.keras.Model):
 
         self.flatten = keras.layers.Flatten()
         self.l1 = keras.layers.Dense(128, activation="relu")
-        self.l2 = keras.layers.Dense(64, activation='linear')
+        self.l2 = keras.layers.Dense(64, activation='relu')
 
         self.V = keras.layers.Dense(1, activation=None)
         self.A = keras.layers.Dense(6, activation=None)

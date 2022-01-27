@@ -85,10 +85,8 @@ def main():
             # 储存记忆
             agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
 
-
             # 学习!
             agent1.train()
-
 
             # 更新state
             current_state = new_state
