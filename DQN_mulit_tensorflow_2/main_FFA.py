@@ -7,8 +7,8 @@ import random
 
 # from DQNAgent_modified import DQNAgent
 # from DQNAgent_ddqn_pri import DQNAgent
-from DQNAgent_ddqn import DQNAgent
-# from DQNAgent_ddqn_noisy import DQNAgent
+# from DQNAgent_ddqn import DQNAgent
+from DQNAgent_ddqn_noisynew import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
 
