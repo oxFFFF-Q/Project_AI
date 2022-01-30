@@ -18,11 +18,11 @@ class replay_Memory():
     def append(self, transition):
         self.buffer.append(transition)
 
-    def append_n_step(self, state, action, reward, next_state, done):
+    def append_n_step(self, state, action, reward, next_state, done, td_error):
         # n_step DQN
         self.n_step_buffer.append((state, action, reward, next_state, done))
         if len(self.n_step_buffer) < self.n_step:
-          return
+          return False
 
         l_reward, l_next_state, l_done = self.n_step_buffer[-1][-3:]
 
@@ -33,8 +33,9 @@ class replay_Memory():
 
         l_state, l_action = self.n_step_buffer[0][:2]
         transition_ = (l_state, l_action, l_reward, l_next_state, l_done)
+        self.append_td(td_error)
         self.buffer.append(transition_)
-
+        return True
 
     def append_action(self, action):
         self.buffer_action.append(action)
@@ -69,7 +70,7 @@ class replay_Memory():
         index = np.argsort(np.array(self.buffer_td).flatten()).tolist()
         # buffer 按index排序
         buffer_sort = self.buffer
-        if len(index) != 0:
+        if len(index) != 0 and len(buffer_sort) != 0:
             for i in range(len(self.buffer)):
                 buffer_sort[i] = self.buffer[index[i]]
         prioritization = int(batch_size * self.alpha)

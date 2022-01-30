@@ -6,9 +6,9 @@ import pandas as pd
 import random
 
 # from DQNAgent_modified import DQNAgent
-# from DQNAgent_ddqn_pri import DQNAgent
+from DQNAgent_ddqn_pri import DQNAgent
 # from DQNAgent_ddqn import DQNAgent
-from DQNAgent_ddqn_noisynew import DQNAgent
+# from DQNAgent_ddqn_noisynew import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
 
@@ -80,15 +80,16 @@ def main():
             # env.render()
 
             # td_error
-            # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
-            # agent1.buffer.append_td([td_error])
+            td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
+
 
             # 储存记忆
-            agent1.buffer.append_n_step(state_feature, actions[0], reward, next_state_feature, done)
+            mark_nstep = agent1.buffer.append_n_step(state_feature, actions[0], reward, next_state_feature, done, td_error)
             # agent1.buffer.append((state_feature, actions[0], reward, next_state_feature, done))
 
             # 学习!
-            loss = agent1.train()
+            if mark_nstep:
+                loss = agent1.train()
 
 
             # 更新state
