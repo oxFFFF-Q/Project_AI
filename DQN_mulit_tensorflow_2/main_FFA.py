@@ -6,8 +6,9 @@ import pandas as pd
 import random
 
 # from DQNAgent_modified import DQNAgent
-# from DQNAgent_ddqn_pri_nstep import DQNAgent
+# from DQNAgent_ddqn_pri import DQNAgent
 from DQNAgent_ddqn import DQNAgent
+# from DQNAgent_ddqn_noisy import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
 
@@ -58,7 +59,7 @@ def main():
                 actions = env.act(current_state)
                 actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
             else:
-                # 随机动作
+                # simple动作
                 actions = env.act(current_state)
                 # actions[0] = random.randint(0, 5)
 
@@ -79,14 +80,15 @@ def main():
             # env.render()
 
             # td_error
-            # td_error = agent1.calculate_td_error(state_feature)
-            # agent1.buffer.append_td([td_error])
+            td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
+            agent1.buffer.append_td([td_error])
 
             # 储存记忆
             agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
 
             # 学习!
-            agent1.train()
+            loss = agent1.train()
+
 
             # 更新state
             current_state = new_state
@@ -120,7 +122,8 @@ def main():
                                                                         'draw',
                                                                         numOfSteps))
 
-                print("Reward {:.2f}, Average Episode Reward: {:.3f}, win_rate:{:.2f}, draw_rate:{:.2f}".format(
+                print("Reward {:.2f}, Average Episode Reward: {:.3f}, win_rate:{:.2f}, draw_rate:{:.2f}"
+                    .format(
                     episode_reward,
                     np.mean(episode_rewards),
                     win_rate,
@@ -130,7 +133,8 @@ def main():
                                                                         'win' if result == 2 else "lose",
                                                                         numOfSteps))
 
-                print("Reward {:.3f}, Average Episode Reward: {:.3f}, win_rate:{:.2f}, draw_rate:{:.2f}".format(
+                print("Reward {:.3f}, Average Episode Reward: {:.3f}, win_rate:{:.2f}, draw_rate:{:.2f}"
+                    .format(
                     episode_reward,
                     np.mean(episode_rewards),
                     win_rate,
