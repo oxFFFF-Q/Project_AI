@@ -80,11 +80,12 @@ def main():
             # env.render()
 
             # td_error
-            td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
-            agent1.buffer.append_td([td_error])
+            # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
+            # agent1.buffer.append_td([td_error])
 
             # 储存记忆
-            agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
+            agent1.buffer.append_n_step(state_feature, actions[0], reward, next_state_feature, done)
+            # agent1.buffer.append((state_feature, actions[0], reward, next_state_feature, done))
 
             # 学习!
             loss = agent1.train()

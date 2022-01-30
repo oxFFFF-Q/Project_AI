@@ -8,16 +8,33 @@ class replay_Memory():
     def __init__(self, MAX_BUFFER_SIZE):
         self.n_step = constants.n_step
         self.buffer = collections.deque(maxlen=MAX_BUFFER_SIZE)
-        self.buffer_n_step = collections.deque(maxlen=self.n_step)
+        self.n_step_buffer = collections.deque(maxlen=self.n_step)
         self.buffer_action = collections.deque([0, 0, 0, 0], maxlen=4)
         self.buffer_td = collections.deque(maxlen=MAX_BUFFER_SIZE)
-        self.alpha = 0.5
+        self.alpha = 0.6
+        self.n_step = 3
+        self.gamma = 0.95  # affinity for long term reward
 
     def append(self, transition):
         self.buffer.append(transition)
 
-    def append_n_step(self, transition):
-        self.buffer_n_step.append(transition)
+    def append_n_step(self, state, action, reward, next_state, done):
+        # n_step DQN
+        self.n_step_buffer.append((state, action, reward, next_state, done))
+        if len(self.n_step_buffer) < self.n_step:
+          return
+
+        l_reward, l_next_state, l_done = self.n_step_buffer[-1][-3:]
+
+        for transition in reversed(list(self.n_step_buffer)[:-1]):
+            r, n_s, d = transition[-3:]
+            l_reward = r + self.gamma * l_reward * (1 - d)
+            l_next_state, l_done = (n_s, d) if d else (l_next_state, l_done)
+
+        l_state, l_action = self.n_step_buffer[0][:2]
+        transition_ = (l_state, l_action, l_reward, l_next_state, l_done)
+        self.buffer.append(transition_)
+
 
     def append_action(self, action):
         self.buffer_action.append(action)
@@ -30,8 +47,10 @@ class replay_Memory():
 
         return mini_batch
 
+
     def sample_element(self, batch):
         mini_batch = random.sample(self.buffer, batch)
+        bf = self.buffer
         current_state, action, reward, new_states, done = [], [], [], [], []
 
         for transition in mini_batch:
