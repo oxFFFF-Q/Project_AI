@@ -160,8 +160,8 @@ class DQNAgent(BaseAgent):
     def calculate_td_error(self, state, action, reward, new_state, done):
         state_ = tf.reshape(state, (-1, 18, 11, 11))
         new_state_ = tf.reshape(new_state, (-1, 18, 11, 11))
-        q_values = self.training_model.call(state_)[0]
-        q_value = q_values.numpy()[action]
+        q_values = self.training_model.call(state_)[0].numpy()
+        q_value = q_values[action]
         target = reward + constants.DISCOUNT * self.trained_model.call(new_state_)[0][np.argmax(q_values)]
         td_error = target - q_value
         return td_error

@@ -11,7 +11,7 @@ class replay_Memory():
         self.n_step_buffer = collections.deque(maxlen=self.n_step)
         self.buffer_action = collections.deque([0, 0, 0, 0], maxlen=4)
         self.buffer_td = collections.deque(maxlen=MAX_BUFFER_SIZE)
-        self.alpha = 0.6
+        self.alpha = 0.5
         self.n_step = 3
         self.gamma = 0.95  # affinity for long term reward
 

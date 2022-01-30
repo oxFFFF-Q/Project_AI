@@ -90,7 +90,7 @@ def main():
             # 学习!
             if mark_nstep:
                 loss = agent1.train()
-
+            # loss = agent1.train()
 
             # 更新state
             current_state = new_state
