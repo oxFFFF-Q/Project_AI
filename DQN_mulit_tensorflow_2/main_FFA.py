@@ -6,10 +6,10 @@ import pandas as pd
 import random
 
 
-
 # from DQNAgent_ddqn import DQNAgent
 # from DQNAgent_ddqn_nstep import DQNAgent
-from DQNAgent_ddqn_pri import DQNAgent
+# from DQNAgent_ddqn_pri import DQNAgent
+from DQNAgent_ddqn_nstep_pri import DQNAgent
 # from DQNAgent_ddqn_noisy import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
@@ -91,14 +91,14 @@ def main():
             # if mark_nstep:
             #      agent1.train()
             # ddqn_pri
-            td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
-            agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
-            agent1.train()
-            # ddqn_nstep_pri
             # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
-            # mark_nstep = agent1.buffer.append_nstep_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
-            # if mark_nstep:
-            #       agent1.train()
+            # agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
+            # agent1.train()
+            # ddqn_nstep_pri
+            td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
+            mark_nstep = agent1.buffer.append_nstep_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
+            if mark_nstep:
+                  agent1.train()
 
 
             # 更新state
