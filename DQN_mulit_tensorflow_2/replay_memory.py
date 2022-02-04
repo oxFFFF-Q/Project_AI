@@ -12,7 +12,7 @@ class replay_Memory():
         self.buffer_action = collections.deque([0, 0, 0, 0], maxlen=4)
         self.buffer_td = collections.deque(maxlen=MAX_BUFFER_SIZE)
         self.alpha = 0.5
-        self.n_step = 5
+        self.n_step = 4
         self.gamma = 0.9  # affinity for long term reward
 
     def append(self, transition):
@@ -22,7 +22,7 @@ class replay_Memory():
         # n_step DQN
         self.n_step_buffer.append((state, action, reward, next_state, done))
         if len(self.n_step_buffer) < self.n_step:
-          return False
+            return False
 
         l_reward, l_next_state, l_done = self.n_step_buffer[-1][-3:]
 
@@ -36,11 +36,18 @@ class replay_Memory():
         self.buffer.append(transition_)
         return True
 
+    def append_pri(self, state, action, reward, next_state, done, td_error):
+        # pri DQN
+        transition = (state, action, reward, next_state, done)
+        self.append_td(td_error)
+        self.buffer.append(transition)
+        return True
+
     def append_nstep_pri(self, state, action, reward, next_state, done, td_error):
-        # n_step DQN
+        # n_step pri DQN
         self.n_step_buffer.append((state, action, reward, next_state, done))
         if len(self.n_step_buffer) < self.n_step:
-          return False
+            return False
 
         l_reward, l_next_state, l_done = self.n_step_buffer[-1][-3:]
 
@@ -65,7 +72,6 @@ class replay_Memory():
         mini_batch = random.sample(self.buffer, batch)
 
         return mini_batch
-
 
     def sample_element(self, batch):
         mini_batch = random.sample(self.buffer, batch)
@@ -94,15 +100,15 @@ class replay_Memory():
         prioritization = int(batch_size * self.alpha)
         batch_prioritized = []
         for i in range(prioritization):
-            batch_prioritized.append(buffer_sort[-i-1])
-        mini_batch = random.sample(self.buffer, batch_size-prioritization)
+            batch_prioritized.append(buffer_sort[-i - 1])
+        mini_batch = random.sample(self.buffer, batch_size - prioritization)
         td = self.buffer_td
         # 最训练使用数据batch= batch_prioritized(按td_error从大到小)+mini_batch(随机抽取)
-        batch = batch_prioritized+mini_batch
+        batch = batch_prioritized + mini_batch
         current_state, action, reward, new_states, done, td_error = [], [], [], [], [], []
 
         for transition in batch:
-            curr_state, act, r, new_state, d= transition
+            curr_state, act, r, new_state, d = transition
             current_state.append(curr_state)
             action.append([act])
             reward.append([r])
