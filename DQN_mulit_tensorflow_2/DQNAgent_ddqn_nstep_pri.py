@@ -10,8 +10,7 @@ import constants
 from replay_memory import replay_Memory
 import numpy as np
 import tensorflow as tf
-from NoisyDense import NoisyDense
-
+import torch
 
 
 class Dueling_Model(tf.keras.Model):
@@ -29,30 +28,20 @@ class Dueling_Model(tf.keras.Model):
         self.flatten = keras.layers.Flatten()
         self.l1 = keras.layers.Dense(128, activation="relu")
         self.l2 = keras.layers.Dense(64, activation='relu')
-        self.l3 = NoisyDense(128, activation="linear")
 
-        self.V_n = NoisyDense(1, activation="linear")
         self.V = keras.layers.Dense(1, activation=None)
-        self.A_n = NoisyDense(6, activation="linear")
         self.A = keras.layers.Dense(6, activation=None)
 
-        self.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
-
-
-
-    def call(self, inputs: object) -> object:
+    def call(self, inputs):
         x = self.c1(inputs)
         x = self.c2(x)
         x = self.c3(x)
         x = self.flatten(x)
         x = self.l1(x)
         x = self.l2(x)
-        x = self.l3(x)
 
-        V = self.V_n(x)
         V = self.V(x)
         # advantage value
-        A = self.A_n(x)
         A = self.A(x)
         mean = tf.math.reduce_mean(A, axis=1, keepdims=True)
         # output
@@ -66,10 +55,16 @@ class Dueling_Model(tf.keras.Model):
         x = self.flatten(x)
         x = self.l1(x)
         x = self.l2(x)
-        x = self.l3(x)
         A = self.A(x)
         return A
 
+# def huber_loss(y_true, y_pred, clip_delta=1.0):
+#
+#     error = y_true - y_pred
+#     cond = keras.backend.abs(error) <= clip_delta
+#     squared_loss = 0.5 * keras.backend.square(error)
+#     quadratic_loss = 0.5 * keras.backend.square(clip_delta) + clip_delta * (K.abs(error) - clip_delta)
+#     return keras.backend.mean(tf.where(cond, squared_loss, quadratic_loss))
 
 class DQNAgent(BaseAgent):
     """DQN second try with keras"""
@@ -90,11 +85,11 @@ class DQNAgent(BaseAgent):
         self.buffer = replay_Memory(constants.MAX_BUFFER_SIZE)
         self.update_counter = 0
         self.n_step = constants.n_step
+        # self.loss = huber_loss()
+        # self.custom_objects = {"huber_loss": huber_loss}
 
-        self.training_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
-        self.trained_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
-
-
+        self.training_model.compile(loss='mse', optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
+        self.trained_model.compile(loss='mse', optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
 
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, Discrete(6))
@@ -111,7 +106,7 @@ class DQNAgent(BaseAgent):
 
         # 在样品中取 current_states, 从模型中获取Q值
         current_states_q = self.training_model.call(current_states)
-        double_states_q = self.training_model.call(new_states)
+        double_new_states_q = self.training_model.call(new_states)
 
         # 在样品中取 next_state, 从旧网络中获取Q值
         new_states_q = self.trained_model.call(new_states)
@@ -125,28 +120,24 @@ class DQNAgent(BaseAgent):
             if done[index] != True:
                 # 更新Q值, Double DQN
                 # new_state_q = reward[index] + constants.DISCOUNT * (np.max(new_states_q[index]) - current_states_q[index])
-                index_action = np.argmax(double_states_q[index])
-                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index, index_action]
+                target = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_states_q[index])]
             else:
                 # new_state_q = reward[index]
-                double_new_q = reward[index]
+                target = reward[index]
+
+            # estimate q-values based on current state
+            q_values = current_states_q[index]
 
             # 在给定的states下更新Q值
-            current_better_q = current_states_q[index].numpy()
-            current_better_q[action[index]] = double_new_q
+            current_better_q = q_values.numpy()
+            current_better_q[action[index]] = target
             current_better_q = tf.convert_to_tensor(current_better_q)
+
+
 
             # 添加训练数据
             states.append(current_states[index])
             actions.append(current_better_q)
-
-            # 开始训练
-        # 使用专用的数据api，但更慢.
-        # states = tf.reshape(states, (-1, 12, 8, 8))
-        # train_dataset = tf.data.Dataset.from_tensor_slices((states, actions))
-        # self.training_model.fit(train_dataset, verbose=0, shuffle=False)
-
-        self.training_model.train_on_batch(np.array(states), np.array(actions))
 
         # 更新网络更新计数器
         if done:
@@ -156,6 +147,25 @@ class DQNAgent(BaseAgent):
         if self.update_counter > constants.UPDATE_EVERY:
             self.trained_model.set_weights(self.training_model.get_weights())
             self.update_counter = 0
+
+        # 使用专用的数据api，但更慢.
+        # states = tf.reshape(states, (-1, 12, 8, 8))
+        # train_dataset = tf.data.Dataset.from_tensor_slices((states, actions))
+        # self.training_model.fit(train_dataset, verbose=0, shuffle=False)
+
+        loss = self.training_model.train_on_batch(np.array(states), np.array(actions))[0]
+
+        return
+
+    def calculate_td_error(self, state, action, reward, new_state, done):
+        state_ = tf.reshape(state, (-1, 18, 11, 11))
+        new_state_ = tf.reshape(new_state, (-1, 18, 11, 11))
+        q_values = self.training_model.call(state_)[0].numpy()
+        q_value = q_values[action]
+        target = reward + constants.DISCOUNT * self.trained_model.call(new_state_)[0][np.argmax(q_values)]
+        td_error = target - q_value
+        return td_error
+
 
     def action_choose(self, state):
         state_reshape = tf.reshape(state, (-1, 18, 11, 11))
@@ -174,10 +184,12 @@ class DQNAgent(BaseAgent):
             print("weights saved!")
 
     def load_weights(self):
-        # 更改路径中的数字即可读取对应模型参数
         self.training_model.load_weights('./checkpoints/FFA400/FFA400')
         self.trained_model.load_weights('./checkpoints/FFA400/FFA400')
         print("weights loaded!")
 
     def save_model(self):
         self.training_model.save("./second_model")
+
+
+

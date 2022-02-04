@@ -102,7 +102,7 @@ class DQNAgent(BaseAgent):
         # if self.buffer.size_n_step() < constants.n_step:
         #     return
 
-        current_states, action, reward, new_states, done = self.buffer.sample_element_pre(constants.MINIBATCH_SIZE)
+        current_states, action, reward, new_states, done = self.buffer.sample_element(constants.MINIBATCH_SIZE)
 
         # 在样品中取 current_states, 从模型中获取Q值
         current_states_q = self.training_model.call(current_states)
@@ -155,7 +155,7 @@ class DQNAgent(BaseAgent):
 
         loss = self.training_model.train_on_batch(np.array(states), np.array(actions))[0]
 
-        return loss
+        return
 
     def calculate_td_error(self, state, action, reward, new_state, done):
         state_ = tf.reshape(state, (-1, 18, 11, 11))
@@ -184,8 +184,8 @@ class DQNAgent(BaseAgent):
             print("weights saved!")
 
     def load_weights(self):
-        self.training_model.load_weights('./checkpoints/FFA200/FFA200')
-        self.trained_model.load_weights('./checkpoints/FFA200/FFA200')
+        self.training_model.load_weights('./checkpoints/FFA400/FFA400')
+        self.trained_model.load_weights('./checkpoints/FFA400/FFA400')
         print("weights loaded!")
 
     def save_model(self):
