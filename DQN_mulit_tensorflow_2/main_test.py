@@ -4,8 +4,9 @@ import pommerman
 import numpy as np
 import random
 
-from DQNAgent_ddqn_nstep import DQNAgent
-# from DQNAgent_ddqn import DQNAgent
+# from DQNAgent_ddqn_nstep import DQNAgent
+from DQNAgent_ddqn import DQNAgent
+# from DQNAgent_ddqn_noisy import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping
 #from DQNAgent_radio import DQNAgent
@@ -86,18 +87,22 @@ def main():
             # if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
             env.render()
 
-            # ddqn
-            # agent1.buffer.append((state_feature, actions[0], reward, next_state_feature, done))
-            # loss = agent1.train()
+            # ddqn, ddqnnoisy
+            agent1.buffer.append((state_feature, actions[0], reward, next_state_feature, done))
+            agent1.train()
             # ddqn_nstep
-            mark_nstep = agent1.buffer.append_nstep(state_feature, actions[0], reward, next_state_feature, done)
-            if mark_nstep:
-                loss = agent1.train()
+            # mark_nstep = agent1.buffer.append_nstep(state_feature, actions[0], reward, next_state_feature, done)
+            # if mark_nstep:
+            #      agent1.train()
+            # ddqn_pri
+            # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
+            # agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
+            # agent1.train()
             # ddqn_nstep_pri
             # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
             # mark_nstep = agent1.buffer.append_nstep_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
             # if mark_nstep:
-            #     loss = agent1.train()
+            #       agent1.train()
 
             # 更新state
             current_state = new_state
