@@ -90,7 +90,7 @@ class replay_Memory():
 
     def sample_element_pre(self, batch_size):
         # Prioritized DQN
-        # 根据td_error排序，求出索引index
+        # 根据td_error排序，求出索引index, 从小到大
         index = np.argsort(np.array(self.buffer_td).flatten()).tolist()
         # buffer 按index排序
         buffer_sort = self.buffer
@@ -100,6 +100,7 @@ class replay_Memory():
         prioritization = int(batch_size * self.alpha)
         batch_prioritized = []
         for i in range(prioritization):
+            # 反向添加，从大到小
             batch_prioritized.append(buffer_sort[-i - 1])
         mini_batch = random.sample(self.buffer, batch_size - prioritization)
         td = self.buffer_td

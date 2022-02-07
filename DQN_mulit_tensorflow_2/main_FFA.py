@@ -39,8 +39,7 @@ def main():
 
 
     while True:
-        random.seed(3)
-        np.random.seed(3)
+
         current_state = env.reset()
 
         # 将state 转化 1D array
