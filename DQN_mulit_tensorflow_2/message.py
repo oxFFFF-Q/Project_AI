@@ -1,6 +1,6 @@
 import numpy as np
 
-def map_filter(board)
+def map_filter(board):
     f1 = np.zeros((11, 11))
     f1[0:3, 0:6] = 1
     f3 = np.zeros((11, 11))
