@@ -19,14 +19,14 @@ def map_filter(board):
     f8 = np.zeros((11, 11))
     f8[9:11, 6:11] = 1
 
-    n1 = np.argwhere(board * f1 != 0).shape[0]
-    n2 = np.argwhere(board * f2 != 0).shape[0]
-    n3 = np.argwhere(board * f3 != 0).shape[0]
-    n4 = np.argwhere(board * f4 != 0).shape[0]
-    n5 = np.argwhere(board * f5 != 0).shape[0]
-    n6 = np.argwhere(board * f6 != 0).shape[0]
-    n7 = np.argwhere(board * f7 != 0).shape[0]
-    n8 = np.argwhere(board * f8 != 0).shape[0]
+    n1 = np.argwhere(board * f1 > 0).shape[0]
+    n2 = np.argwhere(board * f2 > 0).shape[0]
+    n3 = np.argwhere(board * f3 > 0).shape[0]
+    n4 = np.argwhere(board * f4 > 0).shape[0]
+    n5 = np.argwhere(board * f5 > 0).shape[0]
+    n6 = np.argwhere(board * f6 > 0).shape[0]
+    n7 = np.argwhere(board * f7 > 0).shape[0]
+    n8 = np.argwhere(board * f8 > 0).shape[0]
 
     arr_num = np.array([n1, n2, n3, n4, n5, n6, n7, n8])
     max_num1 = np.argmax(arr_num)
@@ -39,7 +39,8 @@ def map_filter(board):
     return max_num1, max_num2
 
 
-def add_message(action, bomb):
+def add_message(action, state_feature):
+    bomb = state_feature[3]
 
     # 队友观测到炸弹最多的两个区域
     m1, m2 = map_filter(bomb)

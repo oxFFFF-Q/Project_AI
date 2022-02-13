@@ -32,7 +32,7 @@ class Dueling_Model(tf.keras.Model):
         self.V = keras.layers.Dense(1, activation=None)
         self.A = keras.layers.Dense(6, activation=None)
 
-    def call(self, inputs: object) -> object:
+    def call(self, inputs):
         x = self.c1(inputs)
         x = self.c2(x)
         x = self.c3(x)
@@ -58,6 +58,13 @@ class Dueling_Model(tf.keras.Model):
         A = self.A(x)
         return A
 
+# def huber_loss(y_true, y_pred, clip_delta=1.0):
+#
+#     error = y_true - y_pred
+#     cond = keras.backend.abs(error) <= clip_delta
+#     squared_loss = 0.5 * keras.backend.square(error)
+#     quadratic_loss = 0.5 * keras.backend.square(clip_delta) + clip_delta * (K.abs(error) - clip_delta)
+#     return keras.backend.mean(tf.where(cond, squared_loss, quadratic_loss))
 
 class DQNAgent(BaseAgent):
     """DQN second try with keras"""
@@ -78,9 +85,11 @@ class DQNAgent(BaseAgent):
         self.buffer = replay_Memory(constants.MAX_BUFFER_SIZE)
         self.update_counter = 0
         self.n_step = constants.n_step
+        # self.loss = huber_loss()
+        # self.custom_objects = {"huber_loss": huber_loss}
 
-        self.training_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
-        self.trained_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
+        self.training_model.compile(loss='mse', optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
+        self.trained_model.compile(loss='mse', optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
 
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, Discrete(6))
@@ -97,7 +106,7 @@ class DQNAgent(BaseAgent):
 
         # 在样品中取 current_states, 从模型中获取Q值
         current_states_q = self.training_model.call(current_states)
-        double_states_q = self.training_model.call(new_states)
+        double_new_states_q = self.training_model.call(new_states)
 
         # 在样品中取 next_state, 从旧网络中获取Q值
         new_states_q = self.trained_model.call(new_states)
@@ -111,15 +120,17 @@ class DQNAgent(BaseAgent):
             if done[index] != True:
                 # 更新Q值, Double DQN
                 # new_state_q = reward[index] + constants.DISCOUNT * (np.max(new_states_q[index]) - current_states_q[index])
-                index_action = np.argmax(double_states_q[index])
-                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index, index_action]
+                target = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_states_q[index])]
             else:
                 # new_state_q = reward[index]
-                double_new_q = reward[index]
+                target = reward[index]
+
+            # estimate q-values based on current state
+            q_values = current_states_q[index]
 
             # 在给定的states下更新Q值
-            current_better_q = current_states_q[index].numpy()
-            current_better_q[action[index]] = double_new_q
+            current_better_q = q_values.numpy()
+            current_better_q[action[index]] = target
             current_better_q = tf.convert_to_tensor(current_better_q)
 
             # 添加训练数据
@@ -167,3 +178,4 @@ class DQNAgent(BaseAgent):
 
     def save_model(self):
         self.training_model.save("./second_model")
+

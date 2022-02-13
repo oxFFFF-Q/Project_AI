@@ -1,15 +1,16 @@
-import numpy as np
-import tensorflow as tf
 import tensorflow.keras as keras
-from gym.spaces import Discrete
 from tensorflow.keras.optimizers import Adam
-
-import constants
-from NoisyDense import NoisyDense
-from pommerman import characters
 from pommerman.agents import BaseAgent
 from pommerman.agents.simple_agent import SimpleAgent
+from pommerman import characters
+
+from gym.spaces import Discrete
+
+import constants
 from replay_memory import replay_Memory
+import numpy as np
+import tensorflow as tf
+import torch
 
 
 class Dueling_Model(tf.keras.Model):
@@ -20,17 +21,11 @@ class Dueling_Model(tf.keras.Model):
         self.c1 = keras.layers.Conv2D(256, 3, (1, 1), input_shape=(constants.MINIBATCH_SIZE, 18, 11, 11,)[1:],
                                       activation="relu", data_format="channels_first",
                                       padding="same")
+        self.p1 = keras.layers.MaxPool2D(pool_size=(2, 2), strides=None, padding='valid', data_format=None, **kwargs)
         self.c2 = keras.layers.Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same")
-
+        self.p2 = keras.layers.MaxPool2D(pool_size=(2, 2), strides=None, padding='valid', data_format=None, **kwargs)
         self.c3 = keras.layers.Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same")
-
-        # Noisy network
-        # self.out = keras.layers.Flatten(self.c3)
-        # self.out1 = self.noisy_dense(self.out, size=512, name='noisy_fc1', activation_fn=tf.nn.relu)
-        # num_actions = 6
-        # self.out2 = self.noisy_dense(self.out1, size=num_actions, name='noisy_fc2')
-
-        self.X = NoisyDense(units=18, activation="relu")
+        self.p3 = keras.layers.MaxPool2D(pool_size=(2, 2), strides=None, padding='valid', data_format=None, **kwargs)
 
         self.flatten = keras.layers.Flatten()
         self.l1 = keras.layers.Dense(128, activation="relu")
@@ -39,11 +34,13 @@ class Dueling_Model(tf.keras.Model):
         self.V = keras.layers.Dense(1, activation=None)
         self.A = keras.layers.Dense(6, activation=None)
 
-    def call(self, inputs: object) -> object:
+    def call(self, inputs):
         x = self.c1(inputs)
+        x = self.p1(x)
         x = self.c2(x)
+        x = self.p2(x)
         x = self.c3(x)
-        x = self.X(x)
+        x = self.p3(x)
         x = self.flatten(x)
         x = self.l1(x)
         x = self.l2(x)
@@ -53,21 +50,30 @@ class Dueling_Model(tf.keras.Model):
         A = self.A(x)
         mean = tf.math.reduce_mean(A, axis=1, keepdims=True)
         # output
-        # Duelling dqn
         output = V + (A - mean)
         return output
 
     def advantage(self, state):
         x = self.c1(state)
+        x = self.p1(x)
         x = self.c2(x)
+        x = self.p2(x)
         x = self.c3(x)
-        x = self.X(x)
+        x = self.p3(x)
         x = self.flatten(x)
         x = self.l1(x)
         x = self.l2(x)
         A = self.A(x)
         return A
 
+
+# def huber_loss(y_true, y_pred, clip_delta=1.0):
+#
+#     error = y_true - y_pred
+#     cond = keras.backend.abs(error) <= clip_delta
+#     squared_loss = 0.5 * keras.backend.square(error)
+#     quadratic_loss = 0.5 * keras.backend.square(clip_delta) + clip_delta * (K.abs(error) - clip_delta)
+#     return keras.backend.mean(tf.where(cond, squared_loss, quadratic_loss))
 
 class DQNAgent(BaseAgent):
     """DQN second try with keras"""
@@ -88,14 +94,16 @@ class DQNAgent(BaseAgent):
         self.buffer = replay_Memory(constants.MAX_BUFFER_SIZE)
         self.update_counter = 0
         self.n_step = constants.n_step
+        # self.loss = huber_loss()
+        # self.custom_objects = {"huber_loss": huber_loss}
 
-        self.training_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
-        self.trained_model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
+        self.training_model.compile(loss='mse', optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
+        self.trained_model.compile(loss='mse', optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
 
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, Discrete(6))
 
-    def train(self):
+    def train(self, imitation):
 
         if self.buffer.size() < constants.MIN_REPLAY_MEMORY_SIZE:
             return
@@ -107,7 +115,7 @@ class DQNAgent(BaseAgent):
 
         # 在样品中取 current_states, 从模型中获取Q值
         current_states_q = self.training_model.call(current_states)
-        double_states_q = self.training_model.call(new_states)
+        double_new_states_q = self.training_model.call(new_states)
 
         # 在样品中取 next_state, 从旧网络中获取Q值
         new_states_q = self.trained_model.call(new_states)
@@ -121,17 +129,21 @@ class DQNAgent(BaseAgent):
             if done[index] != True:
                 # 更新Q值, Double DQN
                 # new_state_q = reward[index] + constants.DISCOUNT * (np.max(new_states_q[index]) - current_states_q[index])
-                # double dqn取最大值
-                index_action = np.argmax(double_states_q[index])
-                # 代入算出新的q值
-                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index, index_action]
+                target = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_states_q[index])]\
+                         + 0.1*imitation
             else:
                 # new_state_q = reward[index]
-                double_new_q = reward[index]
+                target = reward[index] + 0.1*imitation
+
+            # estimate q-values based on current state
+            q_values = current_states_q[index]
 
             # 在给定的states下更新Q值
-            current_better_q = current_states_q[index].numpy()
-            current_better_q[action[index]] = double_new_q
+            current_better_q = q_values.numpy()
+            # current_better_q[action[index]] = target
+            # max_Q-target
+            if tf.abs(target) < 20:
+                current_better_q[action[index]] = target
             current_better_q = tf.convert_to_tensor(current_better_q)
 
             # 添加训练数据
@@ -154,10 +166,6 @@ class DQNAgent(BaseAgent):
         if self.update_counter > constants.UPDATE_EVERY:
             self.trained_model.set_weights(self.training_model.get_weights())
             self.update_counter = 0
-
-        loss = self.training_model.train_on_batch(np.array(states), np.array(actions))[0]
-
-        return
 
     def action_choose(self, state):
         state_reshape = tf.reshape(state, (-1, 18, 11, 11))
@@ -183,14 +191,3 @@ class DQNAgent(BaseAgent):
 
     def save_model(self):
         self.training_model.save("./second_model")
-
-
-    def calculate_td_error(self, state, action, reward, new_state, done):
-        state_ = tf.reshape(state, (-1, 18, 11, 11))
-        new_state_ = tf.reshape(new_state, (-1, 18, 11, 11))
-        q_values = self.training_model.call(state_)[0].numpy()
-        q_value = q_values[action]
-        target = reward + constants.DISCOUNT * self.trained_model.call(new_state_)[0][np.argmax(q_values)]
-        td_error = target - q_value
-        return td_error
-
