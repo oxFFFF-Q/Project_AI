@@ -140,10 +140,10 @@ class DQNAgent(BaseAgent):
 
             # 在给定的states下更新Q值
             current_better_q = q_values.numpy()
-            # current_better_q[action[index]] = target
+            current_better_q[action[index]] = target
             # max_Q-target
-            if tf.abs(target) < 20:
-                current_better_q[action[index]] = target
+            # if tf.abs(target) < 20:
+            #     current_better_q[action[index]] = target
             current_better_q = tf.convert_to_tensor(current_better_q)
 
             # 添加训练数据
@@ -156,7 +156,7 @@ class DQNAgent(BaseAgent):
         # train_dataset = tf.data.Dataset.from_tensor_slices((states, actions))
         # self.training_model.fit(train_dataset, verbose=0, shuffle=False)
 
-        self.training_model.train_on_batch(np.array(states), np.array(actions))
+        list_loss_accuracy = self.training_model.train_on_batch(np.array(states), np.array(actions))
 
         # 更新网络更新计数器
         if done:

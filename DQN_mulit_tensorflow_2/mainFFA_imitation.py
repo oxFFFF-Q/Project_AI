@@ -76,7 +76,7 @@ def main():
 
             # reward_shaping
             agent1.buffer.append_action(actions[0])
-            if imitation ==1:
+            if imitation == 1:
                 reward = 0
             else:
                 reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
