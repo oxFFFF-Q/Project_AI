@@ -21,15 +21,15 @@ class Dueling_Model(tf.keras.Model):
         self.c1 = keras.layers.Conv2D(256, 3, (1, 1), input_shape=(constants.MINIBATCH_SIZE, 18, 11, 11,)[1:],
                                       activation="relu", data_format="channels_first",
                                       padding="same")
-        self.p1 = keras.layers.MaxPool2D(pool_size=(2, 2), strides=None, padding='valid', data_format=None, **kwargs)
+        self.p1 = keras.layers.MaxPool2D(pool_size=(3, 3), strides=1, padding='same', data_format=None, **kwargs)
         self.c2 = keras.layers.Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same")
-        self.p2 = keras.layers.MaxPool2D(pool_size=(2, 2), strides=None, padding='valid', data_format=None, **kwargs)
+        self.p2 = keras.layers.MaxPool2D(pool_size=(3, 3), strides=1, padding='same', data_format=None, **kwargs)
         self.c3 = keras.layers.Conv2D(256, 3, (1, 1), activation="relu", data_format="channels_first", padding="same")
-        self.p3 = keras.layers.MaxPool2D(pool_size=(2, 2), strides=None, padding='valid', data_format=None, **kwargs)
+        self.p3 = keras.layers.MaxPool2D(pool_size=(3, 3), strides=1, padding='same', data_format=None, **kwargs)
 
         self.flatten = keras.layers.Flatten()
         self.l1 = keras.layers.Dense(128, activation="relu")
-        self.l2 = keras.layers.Dense(64, activation='relu')
+        # self.l2 = keras.layers.Dense(64, activation='relu')
 
         self.V = keras.layers.Dense(1, activation=None)
         self.A = keras.layers.Dense(6, activation=None)
@@ -43,7 +43,7 @@ class Dueling_Model(tf.keras.Model):
         x = self.p3(x)
         x = self.flatten(x)
         x = self.l1(x)
-        x = self.l2(x)
+        # x = self.l2(x)
 
         V = self.V(x)
         # advantage value
@@ -62,7 +62,7 @@ class Dueling_Model(tf.keras.Model):
         x = self.p3(x)
         x = self.flatten(x)
         x = self.l1(x)
-        x = self.l2(x)
+        # x = self.l2(x)
         A = self.A(x)
         return A
 
@@ -103,7 +103,7 @@ class DQNAgent(BaseAgent):
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, Discrete(6))
 
-    def train(self, imitation):
+    def train(self):
 
         if self.buffer.size() < constants.MIN_REPLAY_MEMORY_SIZE:
             return
@@ -129,11 +129,10 @@ class DQNAgent(BaseAgent):
             if done[index] != True:
                 # 更新Q值, Double DQN
                 # new_state_q = reward[index] + constants.DISCOUNT * (np.max(new_states_q[index]) - current_states_q[index])
-                target = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_states_q[index])]\
-                         + 0.1*imitation
+                target = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_states_q[index])]
             else:
                 # new_state_q = reward[index]
-                target = reward[index] + 0.1*imitation
+                target = reward[index]
 
             # estimate q-values based on current state
             q_values = current_states_q[index]
@@ -185,8 +184,8 @@ class DQNAgent(BaseAgent):
 
     def load_weights(self):
         # 更改路径中的数字即可读取对应模型参数
-        self.training_model.load_weights('./checkpoints/FFA400/FFA400')
-        self.trained_model.load_weights('./checkpoints/FFA400/FFA400')
+        self.training_model.load_weights('./checkpoints/FFA1000/FFA1000')
+        self.trained_model.load_weights('./checkpoints/FFA1000/FFA1000')
         print("weights loaded!")
 
     def save_model(self):

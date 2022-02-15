@@ -5,7 +5,8 @@ import numpy as np
 import random
 
 # from DQNAgent_ddqn_nstep import DQNAgent
-from DQNAgent_ddqn import DQNAgent
+from DQNAgent_ddqn_imitation import DQNAgent
+# from DQNAgent_ddqn import DQNAgent
 # from DQNAgent_ddqn_noisy import DQNAgent
 from pommerman.agents import SimpleAgent
 from utility import featurize2D, reward_shaping

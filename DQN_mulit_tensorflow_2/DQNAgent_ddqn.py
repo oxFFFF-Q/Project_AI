@@ -27,7 +27,7 @@ class Dueling_Model(tf.keras.Model):
 
         self.flatten = keras.layers.Flatten()
         self.l1 = keras.layers.Dense(128, activation="relu")
-        self.l2 = keras.layers.Dense(64, activation='relu')
+        # self.l2 = keras.layers.Dense(64, activation='relu')
 
         self.V = keras.layers.Dense(1, activation=None)
         self.A = keras.layers.Dense(6, activation=None)
@@ -38,7 +38,7 @@ class Dueling_Model(tf.keras.Model):
         x = self.c3(x)
         x = self.flatten(x)
         x = self.l1(x)
-        x = self.l2(x)
+        # x = self.l2(x)
 
         V = self.V(x)
         # advantage value
@@ -54,7 +54,7 @@ class Dueling_Model(tf.keras.Model):
         x = self.c3(x)
         x = self.flatten(x)
         x = self.l1(x)
-        x = self.l2(x)
+        # x = self.l2(x)
         A = self.A(x)
         return A
 

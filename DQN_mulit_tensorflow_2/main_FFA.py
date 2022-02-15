@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import random
 
-# from DQNAgent_ddqn import DQNAgent
-from DQNAgent_ddqn_imitation import DQNAgent
+from DQNAgent_ddqn import DQNAgent
+# from DQNAgent_ddqn_imitation import DQNAgent
 # from DQNAgent_ddqn_nstep import DQNAgent
 # from DQNAgent_ddqn_pri import DQNAgent
 # from DQNAgent_ddqn_nstep_pri import DQNAgent

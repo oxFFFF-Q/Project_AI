@@ -77,7 +77,7 @@ def main():
             # reward_shaping
             agent1.buffer.append_action(actions[0])
             if imitation == 1:
-                reward = 0
+                reward = 1
             else:
                 reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
             # reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
@@ -91,7 +91,7 @@ def main():
 
             # ddqn, ddqnnoisy
             agent1.buffer.append((state_feature, actions[0], reward, next_state_feature, done))
-            agent1.train(imitation)
+            agent1.train()
 
             # ddqn_nstep, ddqn_nstep_noisy
             # mark_nstep = agent1.buffer.append_nstep(state_feature, actions[0], reward, next_state_feature, done)
