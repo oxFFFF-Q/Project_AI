@@ -1,8 +1,8 @@
 from pommerman import constants
 
-EPI_Imitation = 1000  # episodes for imitation learning
+EPI_Imitation = 600  # episodes for imitation learning
 MIN_REPLAY_MEMORY_SIZE = 1000  # Minimum number of steps in a memory to start training
-MINIBATCH_SIZE = 128  # How many steps (samples) to use for training
+MINIBATCH_SIZE = 256  # How many steps (samples) to use for training
 UPDATE_EVERY = 20  # Terminal states (end of episodes)
 MAX_BUFFER_SIZE = 100_000
 MAX_BUFFER_SIZE_PRE = 1_000_000
