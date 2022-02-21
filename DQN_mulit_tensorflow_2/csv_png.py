@@ -65,13 +65,6 @@ def check_folder(list_name):
 
 
 if __name__ == '__main__':
-    # list_win_rate = [i*0.001/5 for i in range(500)]
-    # print(list_win_rate)
-    # plot_win_rate(list_win_rate)
-    # print('------------------------')
-    #
-    # list_reward = [i*0.001/5 for i in range(500)]
-    # print(list_reward)
-    # plot_reward(list_reward)
+
     plot('name_png', 'title_graph', ['result', 'reward'])
-    x = 0
+
