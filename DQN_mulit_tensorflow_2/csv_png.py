@@ -5,7 +5,7 @@ import os
 import csv
 
 
-def plot(name_png, title_graph, List_label):
+def plot(name_png, title_graph, list_xy, list_label):
     """
     将同一路径下的csv文件夹内所有文件，转换为一张折线图，并保存到同意路径下的graphs文件夹中
     input:
@@ -20,8 +20,10 @@ def plot(name_png, title_graph, List_label):
         x = [i + 1 for i in range(s)]
         plt.figure(1)
         plt.title(title_graph)
+        plt.xlabel(list_xy[0])
+        plt.ylabel(list_xy[1])
         for index, list_d in enumerate(list_data):
-            plt.plot(x, list_d, label=List_label[index], marker=list_maker[index],
+            plt.plot(x, list_d, label=list_label[index], marker=list_maker[index],
                      alpha=0.6, linewidth=0.3)
 
     # plt.gca().yaxis.set_major_locator(MultipleLocator(int(len(List_data[0]) / 10)))
@@ -66,5 +68,5 @@ def check_folder(list_name):
 
 if __name__ == '__main__':
 
-    plot('name_png', 'title_graph', ['result', 'reward'])
+    plot('name_png', 'title_graph', ['episodes', 'result'], ['result', 'reward'])
 

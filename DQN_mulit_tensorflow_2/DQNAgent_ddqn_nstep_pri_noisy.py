@@ -105,7 +105,7 @@ class DQNAgent(BaseAgent):
         # if self.buffer.size_n_step() < constants.n_step:
         #     return
 
-        current_states, action, reward, new_states, done = self.buffer.sample_element_pre(constants.MINIBATCH_SIZE)
+        current_states, action, reward, new_states, done = self.buffer.sample_element_pri(constants.MINIBATCH_SIZE)
 
         # 在样品中取 current_states, 从模型中获取Q值
         current_states_q = self.training_model.call(current_states)

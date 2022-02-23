@@ -132,7 +132,9 @@ class DQNAgent(BaseAgent):
 
             # 在给定的states下更新Q值
             current_better_q = q_values.numpy()
-            current_better_q[action[index]] = target
+            if imitation==1:
+                current_better_q += np.array([-target, -target, -target, target, -target, -target]).reshape(current_better_q.shape)
+            current_better_q[action[index]] += target
             # max_Q-target
             # if tf.abs(target) < 20:
             #     current_better_q[action[index]] = target
@@ -177,8 +179,8 @@ class DQNAgent(BaseAgent):
 
     def load_weights(self):
         # 更改路径中的数字即可读取对应模型参数
-        self.training_model.load_weights('./checkpoints/FFA200/FFA200')
-        self.trained_model.load_weights('./checkpoints/FFA200/FFA200')
+        self.training_model.load_weights('./checkpoints/FFA800/FFA800')
+        self.trained_model.load_weights('./checkpoints/FFA800/FFA800')
         print("weights loaded!")
 
     def save_model(self):

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import random
 
-from DQNAgent_ddqn import DQNAgent
+from DQNAgent_pri import DQNAgent
 # from DQNAgent_ddqn_imitation import DQNAgent
 # from DQNAgent_ddqn_nstep import DQNAgent
 # from DQNAgent_ddqn_pri import DQNAgent
@@ -89,14 +89,14 @@ def main():
             # agent1.train()
 
             # ddqn_nstep, ddqn_nstep_noisy
-            mark_nstep = agent1.buffer.append_nstep(state_feature, actions[0], reward, next_state_feature, done)
-            if mark_nstep:
-                 agent1.train()
+            # mark_nstep = agent1.buffer.append_nstep(state_feature, actions[0], reward, next_state_feature, done)
+            # if mark_nstep:
+            #      agent1.train()
 
-            # ddqn_pri
-            # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
-            # agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
-            # agent1.train()
+            # ddqn_pri, double_pri, pri
+            td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
+            agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
+            agent1.train()
 
             # ddqn_nstep_pri
             # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)

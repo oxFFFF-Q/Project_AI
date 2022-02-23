@@ -130,16 +130,18 @@ class DQNAgent(BaseAgent):
                 # 更新Q值, Double DQN
                 # new_state_q = reward[index] + constants.DISCOUNT * (np.max(new_states_q[index]) - current_states_q[index])
                 target = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_states_q[index])]\
-                         + 0.1*imitation
+                         + 1*imitation
             else:
                 # new_state_q = reward[index]
-                target = reward[index] + 0.1*imitation
+                target = reward[index] + 1*imitation
 
             # estimate q-values based on current state
             q_values = current_states_q[index]
 
             # 在给定的states下更新Q值
             current_better_q = q_values.numpy()
+            if imitation==1:
+                current_better_q += np.array([-target, -target, -target, target, -target, -target]).reshape(current_better_q.shape)
             current_better_q[action[index]] = target
             # max_Q-target
             # if tf.abs(target) < 20:

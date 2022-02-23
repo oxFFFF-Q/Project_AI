@@ -11,7 +11,7 @@ class replay_Memory():
         self.n_step_buffer = collections.deque(maxlen=self.n_step)
         self.buffer_action = collections.deque([0, 0, 0, 0], maxlen=4)
         self.buffer_td = collections.deque(maxlen=MAX_BUFFER_SIZE)
-        self.alpha = 0.5
+        self.alpha = 0.6
         self.n_step = 4
         self.gamma = 0.9  # affinity for long term reward
 
@@ -88,7 +88,7 @@ class replay_Memory():
 
         return np.array(current_state), action, reward, np.array(new_states), done
 
-    def sample_element_pre(self, batch_size):
+    def sample_element_pri(self, batch_size):
         # Prioritized DQN
         # 根据td_error排序，求出索引index, 从小到大
         index = np.argsort(np.array(self.buffer_td).flatten()).tolist()
@@ -97,7 +97,7 @@ class replay_Memory():
         if len(index) != 0 and len(buffer_sort) != 0:
             for i in range(len(self.buffer)):
                 buffer_sort[i] = self.buffer[index[i]]
-        prioritization = int(batch_size * self.alpha)
+        prioritization = int(batch_size * self.alpha)    # self.alpha = 0.6
         batch_prioritized = []
         for i in range(prioritization):
             # 反向添加，从大到小
