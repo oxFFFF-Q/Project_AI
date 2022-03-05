@@ -460,8 +460,9 @@ def featurize2D(states):
     shape = (11, 11)
 
     # path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
-    def get_partially_obs(states):
-        board = np.zeros(shape)
+    def get_partially_obs(states, X, Y):
+        #board = np.zeros(shape)
+        board = np.full(shape, 5)
         for x in range(10):
             for y in range(10):
                 if X - 4 <= x <= X + 4 and Y - 4 <= y <= Y + 4:
@@ -479,7 +480,7 @@ def featurize2D(states):
         return map
 
     if partially_obs:
-        states = get_partially_obs(states)
+        states = get_partially_obs(states, X, Y)
 
     board = get_matrix(states, "board")
 
@@ -488,7 +489,8 @@ def featurize2D(states):
     wood = get_map(board, 2)
     bomb = get_map(board, 3)
     flame = get_map(board, 4)
-    fog = get_map(board, 5)
+    #fog = get_map(board, 5)
+    fog = np.zeros(shape)
     agent1 = get_map(board, 10)
     agent2 = get_map(board, 11)
     agent3 = get_map(board, 12)
@@ -513,7 +515,6 @@ def featurize2D(states):
 
     feature2D = [path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4, bomb_blast_strength,
                  bomb_life, bomb_moving_direction, flame_life, ammo_2D, blast_strength_2D, can_kick_2D]
-
     return np.array(feature2D)
 
 

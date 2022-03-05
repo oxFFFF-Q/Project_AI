@@ -140,8 +140,8 @@ class DQNAgent(BaseAgent):
             print("weights saved!")
 
     def load_weights(self):
-        self.training_model.load_weights('./checkpoints/FFA200/FFA200')
-        self.trained_model.load_weights('./checkpoints/FFA200/FFA200')
+        self.training_model.load_weights('./checkpoints/FFA800/FFA800')
+        self.trained_model.load_weights('./checkpoints/FFA800/FFA800')
         print("weights loaded!")
 
     def save_model(self):

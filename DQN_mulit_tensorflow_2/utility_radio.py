@@ -501,6 +501,12 @@ def featurize2D(states):
                  bomb_life, bomb_moving_direction, flame_life, ammo_2D, blast_strength_2D, can_kick_2D]
     # feature2D = [path, rigid, wood, bomb, flame, power_up, agent1, agent2, agent3, agent4, bomb_blast_strength,
     #              bomb_life, bomb_moving_direction, flame_life, ammo_2D, blast_strength_2D, can_kick_2D]
+    # print('........................')
+    # print('states')
+    # print(states)
+    # print('fea:')
+    # print(feature2D)
+
     return np.array(feature2D)
 
 

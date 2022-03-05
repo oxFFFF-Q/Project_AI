@@ -1,11 +1,10 @@
-
 import constants
 import pommerman
 import numpy as np
 import pandas as pd
 import random
 
-from DQNAgent_pri import DQNAgent
+from DQNAgent_modified import DQNAgent
 # from DQNAgent_ddqn_imitation import DQNAgent
 # from DQNAgent_ddqn_nstep import DQNAgent
 # from DQNAgent_ddqn_pri import DQNAgent
@@ -14,7 +13,8 @@ from DQNAgent_pri import DQNAgent
 # from DQNAgent_ddqn_nstep_noisy import DQNAgent
 # from DQNAgent_ddqn_nstep_pri_noisy import DQNAgent
 from pommerman.agents import SimpleAgent
-from utility import featurize2D, reward_shaping
+from utility_radio import featurize2D, reward_shaping
+from communication import message
 
 
 def main():
@@ -24,7 +24,11 @@ def main():
     agent4 = SimpleAgent()
 
     agent_list = [agent1, agent2, agent3, agent4]
-    env = pommerman.make('PommeFFACompetitionFast-v0', agent_list)
+    env = pommerman.make('PommeRadioCompetition-v2', agent_list)
+    #  ['PommeFFACompetition-v0', 'PommeFFACompetitionFast-v0', 'PommeFFAFast-v0',
+    #  'PommeFFA-v1', 'OneVsOne-v0', 'PommeRadioCompetition-v2', 'PommeRadio-v2',
+    #  'PommeTeamCompetition-v0', 'PommeTeamCompetitionFast-v0', 'PommeTeamCompetition-v1',
+    #  'PommeTeam-v0', 'PommeTeamFast-v0']
 
     episode_rewards = []  # 记录平均reward
 
@@ -37,8 +41,6 @@ def main():
     total_numOfSteps = 0
     episode = 0
 
-
-
     while True:
 
         current_state = env.reset()
@@ -50,32 +52,38 @@ def main():
         episode += 1
         done = False
 
-
-
         while not done:
-
+            x = current_state
+            mess, current_state[0] = message(current_state[0])
             state_feature = featurize2D(current_state[0])
+
             numOfSteps += 1
             total_numOfSteps += 1
 
-            if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
-            #if constants.epsilon > np.random.random():
-                # 获取动作
-                actions = env.act(current_state)
-                actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
-            else:
-                # simple动作
-                actions = env.act(current_state)
-                # actions[0] = random.randint(0, 5)
+            # if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
+            #     # if constants.epsilon > np.random.random():
+            #     # 获取动作
+            #     actions = env.act(current_state)
+            #     action = np.argmax(agent1.action_choose(state_feature)).tolist()
+            #     agent1.buffer.append_action(action)
+            #     actions[0] = [action, mess[0], mess[1]]
+            # else:
+            #     # simple动作
+            #     actions = env.act(current_state)
+            #     actions[0] = [actions[0], 0, 0]
+            #     # actions[0] = random.randint(0, 5)
 
+            actions = env.act(current_state)
+            actions[0] = [actions[0], mess[0], mess[1]]
             new_state, result, done, info = env.step(actions)
 
             if 10 not in new_state[0]["alive"]:
                 done = True
 
             # reward_shaping
-            agent1.buffer.append_action(actions[0])
-            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
+
+            reward = reward_shaping(current_state[0], new_state[0], agent1.buffer.buffer_action[0], result[0],
+                                    agent1.buffer.buffer_action)
             # print("reward: ",reward)
             next_state_feature = featurize2D(new_state[0])
             episode_reward += reward
@@ -85,8 +93,8 @@ def main():
             # env.render()
 
             # ddqn, ddqnnoisy
-            # agent1.buffer.append((state_feature, actions[0], reward, next_state_feature, done))
-            # agent1.train()
+            agent1.buffer.append((state_feature, actions[0][0], reward, next_state_feature, done))
+            agent1.train()
 
             # ddqn_nstep, ddqn_nstep_noisy
             # mark_nstep = agent1.buffer.append_nstep(state_feature, actions[0], reward, next_state_feature, done)
@@ -94,9 +102,9 @@ def main():
             #      agent1.train()
 
             # ddqn_pri, double_pri, pri
-            td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
-            agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
-            agent1.train()
+            # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
+            # agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
+            # agent1.train()
 
             # ddqn_nstep_pri
             # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
@@ -109,7 +117,6 @@ def main():
             # mark_nstep = agent1.buffer.append_nstep_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
             # if mark_nstep:
             #       agent1.train()
-
 
             # 更新state
             current_state = new_state
@@ -177,7 +184,6 @@ def main():
             result_to_csv = []
 
     env.close()
-
 
 
 if __name__ == '__main__':

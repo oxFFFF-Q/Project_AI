@@ -4,8 +4,8 @@ import pommerman
 import numpy as np
 import random
 
-# from DQNAgent_ddqn_nstep import DQNAgent
-from DQNAgent_ddqn_imitation import DQNAgent
+from DQNAgent_pri import DQNAgent
+# from DQNAgent_ddqn_imitation import DQNAgent
 # from DQNAgent_ddqn import DQNAgent
 # from DQNAgent_ddqn_noisy import DQNAgent
 from pommerman.agents import SimpleAgent
@@ -89,15 +89,15 @@ def main():
             env.render()
 
             # ddqn, ddqnnoisy
-            agent1.buffer.append((state_feature, actions[0], reward, next_state_feature, done))
-            agent1.train()
+            # agent1.buffer.append((state_feature, actions[0], reward, next_state_feature, done))
+            # agent1.train()
             # ddqn_nstep
             # mark_nstep = agent1.buffer.append_nstep(state_feature, actions[0], reward, next_state_feature, done)
             # if mark_nstep:
             #      agent1.train()
             # ddqn_pri
-            # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
-            # agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
+            td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
+            agent1.buffer.append_pri(state_feature, actions[0], reward, next_state_feature, done, td_error)
             # agent1.train()
             # ddqn_nstep_pri
             # td_error = agent1.calculate_td_error(state_feature, actions[0], reward, next_state_feature, done)
