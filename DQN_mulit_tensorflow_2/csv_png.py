@@ -14,7 +14,8 @@ def plot(name_png, title_graph, list_xy, list_label):
         List_label:  图表内折线标签，Format：['label1', 'label2', ....],数量与csv文件夹内文件个数一致
     """
     list_data = load_csv()
-    list_maker = [',', '.', 'o', 'v', '^', '<', '>', '+', 'x', 'p', '*']
+    # list_maker = [',', '.', 'o', 'v', '^', '<', '>', '+', 'x', 'p', '*']
+    list_maker = [',', ',', ',', ',', ',', ',', ',', '+', 'x', 'p', '*']
     if len(list_data) != 0:
         s = len(list_data[0])
         x = [i + 1 for i in range(s)]
@@ -24,10 +25,11 @@ def plot(name_png, title_graph, list_xy, list_label):
         plt.ylabel(list_xy[1])
         for index, list_d in enumerate(list_data):
             plt.plot(x, list_d, label=list_label[index], marker=list_maker[index],
-                     alpha=0.6, linewidth=0.3)
+                     alpha=0.8, linewidth=0.5)
 
     # plt.gca().yaxis.set_major_locator(MultipleLocator(int(len(List_data[0]) / 10)))
-    plt.legend(loc='upper left', bbox_to_anchor=(0.02, 0.98))
+    if len(list_label) > 1:
+        plt.legend(loc='upper left', fontsize='xx-small', frameon=False)
     png_path = get_path(name_png, 'graphs')
     plt.savefig(png_path)
     plt.show()
@@ -46,7 +48,7 @@ def load_csv():
             reader = csv.reader(file)  # 读取csv文件
             data = list(reader)  # csv数据转换为列表
             data = np.array(data)
-            data = data.astype(np.float).tolist()
+            data = data.astype(float).tolist()
             list_data.append([r[col] for r in data for col in range(len(data[0]))])
     return list_data
 
@@ -68,5 +70,8 @@ def check_folder(list_name):
 
 if __name__ == '__main__':
 
-    plot('name_png', 'title_graph', ['episodes', 'result'], ['result', 'reward'])
-
+    # plot('name_png', 'title_graph', ['episodes', 'result'], ['result', 'reward'])
+    # plot('Reward_rainbow', 'Rainbow DQN', ['episodes', 'reward'],
+    #      ['DQN', 'DQN with data augmentation', 'Double DQN', 'Dueling DQN',
+    #       'DQN + noisy network', 'DQN + priority memory', 'double DQN + priority'])
+    plot('Reward_DQN + priority memory', 'DQN + priority memory', ['episodes', 'reward'], ['Basic DQN'])
