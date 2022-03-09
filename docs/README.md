@@ -5,6 +5,7 @@
 * [Python 3.6.0](https://www.python.org/downloads/release/python-360/)+ (including `pip`)
 * [Docker](https://www.docker.com/) (only needed for `DockerAgent`)
 * [tensorflow 2.6.2](https://www.tensorflow.org/hub/installation)
+* [Keras ]
 # Installation
 
 * Clone the repository
@@ -35,12 +36,16 @@ $ conda activate pommerman
 $ conda env update -f env.yml --prune
 ```
 
+# Launch the agent
+You can use our trained DQN model to play as player 1 (left-up corner) by running [], and play as player 3 by running [].
+
 # Train your agent
 
 ## A Simple Example
 
-Run [simple_ffa_run.py](../examples/simple_ffa_run.py) to train our final DQN model for radio team competition of two
-[SimpleAgent](../pommerman/agents/simple_agent.py) as enemies and a same DQNAgent as teammate on the board.
+Run [simple_ffa_run.py](../examples/simple_ffa_run.py) to train our final DQN model for radio team competition of two [SimpleAgent]s(../pommerman/agents/simple_agent.py) as enemies and a [SimpleAgent](../pommerman/agents/simple_agent.py) as teammate.
+
+The training will not automatically stop, but need to be done manully, according to the given out report about the rewards. The paramaters will be recorded every 100 episodes. Run [] to save the model. The name of the model is required. The best one is usually among the last few models.
 
 ## Train other models
 
@@ -66,6 +71,6 @@ agent_list = [
 ]
 ```
 
-# Launch the agent
+
 
 # Visualizing the experiment results
