@@ -10,7 +10,7 @@
 
 * Clone the repository
 ```
-$ git clone https://github.com/MultiAgentLearning/playground ~/playground
+$ git clone https://github.com/oxFFFF-Q/Project_AI.git
 ```
 
 ## Pip
@@ -46,7 +46,7 @@ $ conda activate pommerman
 $ conda env update -f env.yml --prune
 ```
 
-# Examples
+# Train your agent
 
 ## A Simple Example
 
