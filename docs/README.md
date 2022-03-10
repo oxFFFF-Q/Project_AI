@@ -50,7 +50,7 @@ $ conda env update -f env.yml --prune
 ```
 
 # Launch the agent
-We have seperately trained models for player 1 [Agent1](Group_C/agents/Agent1.py) and player 3 [Agent3](Group_C/agents/Agent3.py). Run [main_test.py](Group_C/main_test.py)to test them palying against two [SimpleAgent](pommerman/agents/simple_agent.py).
+We have seperately trained models for player 1 [Agent1](Group_C/agents/Agent1.py) and player 3 [Agent3](Group_C/agents/Agent3.py). Run [main_test.py](Group_C/main_test.py) to test them palying against two [SimpleAgent](pommerman/agents/simple_agent.py).
 
 # Train your agent
 
