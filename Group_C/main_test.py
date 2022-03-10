@@ -14,6 +14,7 @@ def main():
 
     agent_list = [agent1, agent2, agent3, agent4]
     env = pommerman.make("PommeRadioCompetition-v2", agent_list)
+    # env = pommerman.make("PommeFFACompetitionFast-v0", agent_list)
     episode_rewards = []  # 记录平均reward
 
     win = 0
