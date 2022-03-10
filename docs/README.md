@@ -17,7 +17,8 @@ We were able to implement all the descendants of Rainbow DQN except Categorical 
 * [Python 3.6.0](https://www.python.org/downloads/release/python-360/)+ (including `pip`)
 * [Docker](https://www.docker.com/) (only needed for `DockerAgent`)
 * [tensorflow 2.6.2](https://www.tensorflow.org/hub/installation)
-* [Keras ]
+* [Keras 2.6.0](https://keras.io/getting_started/)
+* Others are all included in [requirements](Group_C/requirements.txt)
 # Installation
 
 * Clone the repository
