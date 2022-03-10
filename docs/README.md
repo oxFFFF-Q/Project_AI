@@ -49,15 +49,15 @@ $ conda env update -f env.yml --prune
 ```
 
 # Launch the agent
-We have seperately trained models for player 1 [Agent1] (Group_C/agents/Agent1.py) and player 3[Agent3] (Group_C/agents/Agent3.py). Run [main_test.py] to test them palying against two [SimpleAgent]s(pommerman/agents/simple_agent.py).
+We have seperately trained models for player 1 [Agent1](Group_C/agents/Agent1.py) and player 3[Agent3](Group_C/agents/Agent3.py). Run [main_test.py] (Group_C/main_test.py)to test them palying against two [SimpleAgent](pommerman/agents/simple_agent.py).
 
 # Train your agent
 
 ## A Simple Example
 
-Run [main_train.py] (Group_C/main_train.py) to train our final DQN model for radio team competition of two [SimpleAgent]s (pommerman/agents/simple_agent.py) as enemies and a [SimpleAgent] (pommerman/agents/simple_agent.py) as teammate.
+Run [main_train.py](Group_C/main_train.py) to train our final DQN model for radio team competition of two [SimpleAgent]s (pommerman/agents/simple_agent.py) as enemies and a [SimpleAgent] (pommerman/agents/simple_agent.py) as teammate.
 
-The training will not automatically stop, but need to be done manully, according to the given out report about the rewards. The paramaters will be recorded every 100 episodes. Run [main_save_model.py] (Group_C/main_save_model.py) to save the model. The name of the model is required. The best one is usually among the last few models.
+The training will not automatically stop, but need to be done manully, according to the given out report about the rewards. The paramaters will be recorded every 100 episodes. Run [main_save_model.py](Group_C/main_save_model.py) to save the model. The name of the model is required. The best one is usually among the last few models.
 
 ## Use other strategies
 
