@@ -62,7 +62,7 @@ The training will not automatically stop, but need to be done manully, according
 
 ## Use other strategies
 
-Select other names for strategy paramater in [main_train.py](Group_C/main_train.py) to try other achietectures. Make sure the consistency of the strategy in [main_save_model.py](Group_C/main_save_model.py).
+Select other names for `strategy` in [main_train.py](Group_C/main_train.py) to try other achietectures. Make sure the consistency of the `strategy` in [main_save_model.py](Group_C/main_save_model.py).
 
 
 
