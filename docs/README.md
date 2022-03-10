@@ -49,7 +49,7 @@ $ conda env update -f env.yml --prune
 ```
 
 # Launch the agent
-You can use our trained DQN model to play as player 1 (left-up corner) by running [], and play as player 3 by running [].
+We have seperately trained models for player 1 [Agent1.py](Group_C/agents/Agent1.py) and player 3[Agent3.py](Group_C/agents/Agent3.py). Run [main_test.py] to test them palying against two [SimpleAgent]s(../pommerman/agents/simple_agent.py).
 
 # Train your agent
 
