@@ -1,3 +1,15 @@
+# Architecture
+
+We were able to implement all the descendants of Rainbow DQN except Categorical DQN
+
+- [x] basic DQN
+- [x] Double DQN
+- [x] Prioritized Experience Replay
+- [x] Dueling Network Architectures
+- [x] Noisy Nets
+- [x] Multi Step Reinforcement Learning
+- [ ] Categorical DQN
+
 # Getting Started with our DQNAgent
 
 # Pre-requisites
