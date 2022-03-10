@@ -49,39 +49,19 @@ $ conda env update -f env.yml --prune
 ```
 
 # Launch the agent
-We have seperately trained models for player 1 [Agent1.py](Group_C/agents/Agent1.py) and player 3[Agent3.py](Group_C/agents/Agent3.py). Run [main_test.py] to test them palying against two [SimpleAgent]s(../pommerman/agents/simple_agent.py).
+We have seperately trained models for player 1 [Agent1](Group_C/agents/Agent1.py) and player 3[Agent3](Group_C/agents/Agent3.py). Run [main_test.py] to test them palying against two [SimpleAgent]s(pommerman/agents/simple_agent.py).
 
 # Train your agent
 
 ## A Simple Example
 
-Run [simple_ffa_run.py](../examples/simple_ffa_run.py) to train our final DQN model for radio team competition of two [SimpleAgent]s(../pommerman/agents/simple_agent.py) as enemies and a [SimpleAgent](../pommerman/agents/simple_agent.py) as teammate.
+Run [main_train.py](Group_C/main_train.py) to train our final DQN model for radio team competition of two [SimpleAgent]s(pommerman/agents/simple_agent.py) as enemies and a [SimpleAgent](pommerman/agents/simple_agent.py) as teammate.
 
-The training will not automatically stop, but need to be done manully, according to the given out report about the rewards. The paramaters will be recorded every 100 episodes. Run [] to save the model. The name of the model is required. The best one is usually among the last few models.
+The training will not automatically stop, but need to be done manully, according to the given out report about the rewards. The paramaters will be recorded every 100 episodes. Run [main_save_model.py](Group_C/main_save_model.py) to save the model. The name of the model is required. The best one is usually among the last few models.
 
-## Train other models
+## Use other strategies
 
-The above example can be extended to use [DockerAgent](../pommerman/agents/docker_agent.py) instead of a
-[RandomAgent](../pommerman/agents/random_agent.py). [examples/docker-agent](../examples/docker-agent) contains
-the code to wrap a [SimpleAgent](../pommerman/agents/simple_agent.py) inside Docker.
-
-
-* We will build a docker image with the name "pommerman/simple-agent" using the `Dockerfile` provided.
-```
-$ cd ~/playground
-$ docker build -t pommerman/simple-agent -f examples/docker-agent/Dockerfile .
-```
-
-* The agent list seen in the previous example can now be updated. Note that a `port` argument (of an unoccupied port) is
-needed to expose the HTTP server.
-```python
-agent_list = [
-    agents.SimpleAgent(),
-    agents.RandomAgent(),
-    agents.SimpleAgent(),
-    agents.DockerAgent("pommerman/simple-agent", port=12345)
-]
-```
+Select other names for strategy paramater in [main_train.py](Group_C/main_train.py) to try other achietectures. Make sure the consistency of the strategy in [main_save_model.py](Group_C/main_save_model.py).
 
 
 
