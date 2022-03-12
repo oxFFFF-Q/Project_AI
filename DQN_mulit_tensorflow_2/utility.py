@@ -2,16 +2,17 @@ import numpy as np
 
 
 def reward_shaping(current_state, new_state, action, result, action_list):
-
-    r_win = 1
+    r_win = 0
     r_lose = -1
 
     r_wood = 0.01
     r_powerup = 0.05
     r_kick = 0.02
 
-    r_lay_bomb = -0.005
+    # r_lay_bomb = -0.005
+    r_lay_bomb = 0.001
     r_lay_bomb_near_enemy = 0.2
+    r_attack_teammate = -0.1
     r_get_away_from_bomb = 0.005
     r_get_close_to_bomb = -0.01
 
@@ -30,6 +31,10 @@ def reward_shaping(current_state, new_state, action, result, action_list):
     new_X = new_state["position"][0]
     new_Y = new_state["position"][1]
 
+    # 左下情况
+    enemies = [11, 12, 13]
+    teammate = [10]
+
     current_grids = []
     if X - 1 >= 0:
         current_grids.append(current_state["board"][X - 1][Y])
@@ -40,9 +45,6 @@ def reward_shaping(current_state, new_state, action, result, action_list):
     if Y + 1 <= 10:
         current_grids.append(current_state["board"][X][Y + 1])
 
-    # 达到最大步数，为平局
-    # if steps == constants.MAX_STEPS + 1:
-    #     return reward
 
     if result == 1:
         reward += r_win
@@ -68,7 +70,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward += r_move
             reward = check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end)
             reward = check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids, reward,
-                                         r_ignore_penalty)
+                                          r_ignore_penalty)
         reward = check_move_loop(action_list, reward, r_move_loop)
         reward = check_power_up(new_X, new_Y, current_state, reward, r_powerup)
         reward = check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
@@ -84,7 +86,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward += r_move
             reward = check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end)
             reward = check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids, reward,
-                                         r_ignore_penalty)
+                                          r_ignore_penalty)
         reward = check_move_loop(action_list, reward, r_move_loop)
         reward = check_power_up(new_X, new_Y, current_state, reward, r_powerup)
         reward = check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
@@ -100,7 +102,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward += r_move
             reward = check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end)
             reward = check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids, reward,
-                                         r_ignore_penalty)
+                                          r_ignore_penalty)
         reward = check_move_loop(action_list, reward, r_move_loop)
         reward = check_power_up(new_X, new_Y, current_state, reward, r_powerup)
         reward = check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
@@ -116,7 +118,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward += r_move
             reward = check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end)
             reward = check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids, reward,
-                                         r_ignore_penalty)
+                                          r_ignore_penalty)
         reward = check_move_loop(action_list, reward, r_move_loop)
         reward = check_power_up(new_X, new_Y, current_state, reward, r_powerup)
         reward = check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
@@ -132,14 +134,16 @@ def reward_shaping(current_state, new_state, action, result, action_list):
                                           r_get_close_to_bomb, action_list)
         if current_state["ammo"] != 0:
             reward += r_lay_bomb
-            reward = check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy)
+            reward = check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy, r_attack_teammate,
+                                       enemies, teammate)
         else:
-            reward += (2 * r_move_towards_wood)
+            #reward += (2 * r_move_towards_wood)
+            reward += -0.001
 
         return reward
 
 
-def check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy):
+def check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy, r_attack_teammate, enemies, teammate):
     blast_strength = current_state["blast_strength"]
     # 判断炸弹左方是否有墙
     for strength in range(1, blast_strength):
@@ -154,9 +158,10 @@ def check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy
         elif current_state["board"][X][Y - strength] == 1:
             break
         # 如果爆炸范围内有敌人，获得reward
-        elif current_state["board"][X][Y - strength] == 11 or current_state["board"][X][Y - strength] == 12 or \
-                current_state["board"][X][Y - strength] == 13:
+        elif current_state["board"][X][Y - strength] in enemies:
             reward += r_lay_bomb_near_enemy
+        elif current_state["board"][X][Y - strength] in teammate:
+            reward += r_attack_teammate
 
     # 判断炸弹右方是否有墙
     for strength in range(1, blast_strength):
@@ -171,9 +176,10 @@ def check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy
         elif current_state["board"][X][Y + strength] == 1:
             break
         # 如果爆炸范围内有敌人，获得reward
-        elif current_state["board"][X][Y + strength] == 11 or current_state["board"][X][Y + strength] == 12 or \
-                current_state["board"][X][Y + strength] == 13:
+        elif current_state["board"][X][Y + strength] in enemies:
             reward += r_lay_bomb_near_enemy
+        elif current_state["board"][X][Y + strength] in teammate:
+            reward += r_attack_teammate
 
     # 判断炸弹上方是否有墙
     for strength in range(1, blast_strength):
@@ -188,9 +194,10 @@ def check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy
         elif current_state["board"][X - strength][Y] == 1:
             break
         # 如果爆炸范围内有敌人，获得reward
-        elif current_state["board"][X - strength][Y] == 11 or current_state["board"][X - strength][Y] == 12 or \
-                current_state["board"][X - strength][Y] == 13:
+        elif current_state["board"][X - strength][Y] in enemies:
             reward += r_lay_bomb_near_enemy
+        elif current_state["board"][X - strength][Y] in teammate:
+            reward += r_attack_teammate
 
     # 判断炸弹下方是否有墙
     for strength in range(1, blast_strength):
@@ -205,9 +212,10 @@ def check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy
         elif current_state["board"][X + strength][Y] == 1:
             break
         # 如果爆炸范围内有敌人，获得reward
-        elif current_state["board"][X + strength][Y] == 11 or current_state["board"][X + strength][Y] == 12 or \
-                current_state["board"][X + strength][Y] == 13:
+        elif current_state["board"][X + strength][Y] in enemies:
             reward += r_lay_bomb_near_enemy
+        elif current_state["board"][X + strength][Y] in teammate:
+            reward += r_attack_teammate
     return reward
 
 
@@ -442,12 +450,26 @@ def check_wood_and_power(current_state, new_X, new_Y, action_list, current_grids
 
     return reward
 
-def featurize2D(states):
 
+def featurize2D(states, partially_obs=True):
     # 共18个矩阵
+    X = states["position"][0]
+    Y = states["position"][1]
     shape = (11, 11)
+    # for 1v1
+    #shape = (8, 8)
 
     # path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
+    def get_partially_obs(states, X, Y):
+        # board = np.zeros(shape)
+        board = np.full(shape, 5)
+        for x in range(10):
+            for y in range(10):
+                if X - 4 <= x <= X + 4 and Y - 4 <= y <= Y + 4:
+                    board[x][y] = states["board"][x][y]
+        states["board"] = board
+        return states
+
     def get_matrix(board, key):
         res = board[key]
         return res.reshape(shape).astype(np.float64)
@@ -457,6 +479,9 @@ def featurize2D(states):
         map[board == item] = 1
         return map
 
+    if partially_obs:
+        states = get_partially_obs(states, X, Y)
+
     board = get_matrix(states, "board")
 
     path = get_map(board, 0)
@@ -464,7 +489,8 @@ def featurize2D(states):
     wood = get_map(board, 2)
     bomb = get_map(board, 3)
     flame = get_map(board, 4)
-    fog = get_map(board, 5)
+    # fog = get_map(board, 5)
+    fog = np.zeros(shape)
     agent1 = get_map(board, 10)
     agent2 = get_map(board, 11)
     agent3 = get_map(board, 12)
@@ -480,7 +506,6 @@ def featurize2D(states):
                 new_row.append(0.0)
         power_up.append(new_row)
 
-
     bomb_blast_strength = get_matrix(states, 'bomb_blast_strength')
     bomb_life = get_matrix(states, 'bomb_life')
     bomb_moving_direction = get_matrix(states, 'bomb_moving_direction')
@@ -495,13 +520,15 @@ def featurize2D(states):
 
 
 def rebuild_1D_element(states):
+    shape = (11,11)
+    #shape = (8, 8)
     ammo = states["ammo"]
-    ammo_2D = np.full((11, 11), ammo)
+    ammo_2D = np.full(shape, ammo)
 
     blast_strength = states["blast_strength"]
-    blast_strength_2D = np.full((11, 11), blast_strength)
+    blast_strength_2D = np.full(shape, blast_strength)
 
     can_kick = states["can_kick"]
-    can_kick_2D = np.full((11, 11), int(can_kick))
+    can_kick_2D = np.full(shape, int(can_kick))
 
     return ammo_2D, blast_strength_2D, can_kick_2D

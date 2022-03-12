@@ -7,7 +7,7 @@ from pommerman import characters
 
 from gym.spaces import Discrete
 
-import constants
+from DQN_mulit_tensorflow_2 import constants
 from replay_memory import replay_Memory
 import numpy as np
 import tensorflow as tf
@@ -50,7 +50,6 @@ class DQNAgent(BaseAgent):
         model.add(Dense(6, activation='linear'))
         model.compile(loss="mse", optimizer=Adam(learning_rate=0.0001), metrics=['accuracy'])
         model.summary()
-        
         return model
 
     def act(self, obs, action_space):
@@ -70,12 +69,9 @@ class DQNAgent(BaseAgent):
         # 在样品中取 current_states, 从模型中获取Q值
         current_states_q = self.training_model.predict(current_states_shaped)
 
-        #double
-        
-        
         # 在样品中取 next_state, 从旧网络中获取Q值
         new_states_q = self.trained_model.predict(new_states_shaped)
-        double_new_q = self.training_model.predict(new_states_shaped)
+
         # X为state，Y为所预测的action
         states = []
         actions = []
@@ -85,7 +81,6 @@ class DQNAgent(BaseAgent):
             if done[index] != True:
                 # 更新Q值
                 new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
-                double_new_q = reward[index] + constants.DISCOUNT * new_states_q[index][np.argmax(double_new_q[index])]
             else:
                 new_state_q = reward[index]
             # 在给定的states下更新Q值

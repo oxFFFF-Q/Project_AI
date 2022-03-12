@@ -1,47 +1,58 @@
+import time
 
 import constants
 import pommerman
 import numpy as np
 
-from DQNAgent_ddqn import DQNAgent
-from pommerman.agents import SimpleAgent
+# from DQNAgent_radio import DQNAgent
+from DQNAgent_modified import DQNAgent
+# from DQNAgent_one_vs_one import DQNAgent
+# from DQNAgent_dueling_dqn import DQNAgent
+#from DQNAgent_double_dqn import DQNAgent
+# from DQNAgent_dueling_dqn import DQNAgent
+# from DQNAgent_modified_filter_tong import DQNAgent
+# from DQNAgent_radio_filter2 import DQNAgent
+# from DQNAgent_noisy import DQNAgent
+from pommerman.agents import SimpleAgent, RandomAgent
 from utility import featurize2D, reward_shaping
-#from DQNAgent_radio import DQNAgent
+
+
+# from DQNAgent_radio import DQNAgent
 
 def main():
     agent1 = DQNAgent()
     agent2 = SimpleAgent()
-    agent3 = SimpleAgent()
+    agent3 = DQNAgent()
     agent4 = SimpleAgent()
 
+    # agent1 = DQNAgent()
+    # agent2 = DQNAgent()
+    # agent3 = DQNAgent()
+    # agent4 = DQNAgent()
+
     agent_list = [agent1, agent2, agent3, agent4]
-    #env = pommerman.make("PommeRadioCompetition-v2", agent_list)
-    env = pommerman.make("PommeFFACompetitionFast-v0", agent_list)
+
+    #env = pommerman.make("PommeFFACompetitionFast-v0", agent_list)
+    env = pommerman.make("PommeRadioCompetition-v2", agent_list)
+
     episode_rewards = []  # 记录平均reward
 
     win = 0
     draw = 0
     total_game = 0
-    reward_to_csv = []
-    result_to_csv = []
 
     total_numOfSteps = 0
     episode = 0
-    #while True:
-    for i in range(1):
-
-        # random.seed(1)
-        # np.random.seed(1)
+    # while True:
+    for i in range(100):
+        # agent1.save_model()
         current_state = env.reset()
-        # random.seed(None)
         # 将state 转化 1D array
 
         episode_reward = 0
         numOfSteps = 0
         episode += 1
         done = False
-
-        #agent1.save_model()
 
         while not done:
 
@@ -58,6 +69,8 @@ def main():
             #     # 获取动作
             actions = env.act(current_state)
             actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
+            #actions[0] = agent1.act_filter(current_state[0], actions[0])
+
             # else:
             #     # 随机动作
             #     actions = env.act(current_state)
@@ -70,23 +83,24 @@ def main():
                 done = True
 
             # reward_shaping
-            agent1.buffer.append_action(actions[0])
-            reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
+            # agent1.buffer.append_action(actions[0])
+            # reward = reward_shaping(current_state[0], new_state[0], actions[0], result[0], agent1.buffer.buffer_action)
 
-            #print("action: ", actions[0], "step_reward: ", reward)
-            #print("step reward: ",reward)
-            next_state_feature = featurize2D(new_state[0])
-            #episode_reward += reward
+            # print("action: ", actions[0], "step_reward: ", reward)
+            # print("step reward: ",reward)
+            # next_state_feature = featurize2D(new_state[0])
+            # episode_reward += reward
 
             # 每一定局数显示游戏画面
             # if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
             env.render()
+            time.sleep(10000)
 
             # 储存记忆
-            agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
+            # agent1.buffer.append([state_feature, actions[0], reward, next_state_feature, done])
 
             # 学习!
-            agent1.train()
+            # agent1.train()
 
             # 更新state
             current_state = new_state
@@ -107,6 +121,7 @@ def main():
         if numOfSteps == constants.MAX_STEPS + 1:
             draw += 1
             result = 1
+
         win_rate = win / total_game
         draw_rate = draw / total_game
 
@@ -131,9 +146,7 @@ def main():
                     np.mean(episode_rewards),
                     win_rate,
                     draw_rate))
-
-        #agent1.save_weights(episode)
-        agent1.save_model()
+    print("win: ", win, " draw: ", draw)
     env.close()
 
 
