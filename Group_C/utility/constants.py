@@ -23,3 +23,4 @@ MIN_EPSILON = 0.95
 
 SHOW_PREVIEW = True
 SHOW_GAME = 100
+save_weight = 40

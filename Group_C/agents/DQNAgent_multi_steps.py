@@ -60,8 +60,12 @@ class DQNAgent(BaseAgent):
     def act(self, obs, action_space):
         return self.baseAgent.act(obs, Discrete(6))
 
-    def save_buffer(self, state_feature, action, reward, next_state_feature, done):
-        self.buffer.append_n_step(state_feature, action, reward, next_state_feature, done)
+    def save_buffer(self, state_feature, action, reward, next_state_feature, done, Data_processing=False):
+        """if you want rotate observation into other 3 corner, set Data_processing to True"""
+        if Data_processing:
+            self.data_processing(state_feature, action, reward, next_state_feature, done)
+        else:
+            self.buffer.append([state_feature, action, reward, next_state_feature, done])
 
     def train(self):
         if self.buffer.size() < constants.MIN_REPLAY_MEMORY_SIZE:
@@ -69,73 +73,74 @@ class DQNAgent(BaseAgent):
 
         current_states, action, reward, new_states, done = self.buffer.sample_element(constants.MINIBATCH_SIZE)
 
-        # 在样品中取 current_states, 从模型中获取Q值
+        # Take the current_states in the sample, get the Q value from the model
         current_states_q = self.training_model.predict(current_states)
 
-        # 在样品中取 next_state, 从旧网络中获取Q值
+        # Take next_state in the sample, get the Q value from the old network
         new_states_q = self.trained_model.predict(new_states)
 
-        # X为state，Y为所预测的action
+        # X is the state, Y is the predicted action
         states = []
         actions = []
 
         for index in range(constants.MINIBATCH_SIZE):
 
             if done[index] is not True:
-                # 更新Q值
+                # Update Q value
                 new_state_q = reward[index] + constants.DISCOUNT * np.max(new_states_q[index])
             else:
                 new_state_q = reward[index]
 
-            # 在给定的states下更新Q值
+            # Update the Q value for the given states
             current_better_q = current_states_q[index]
             current_better_q[action[index]] = new_state_q
 
-            # 添加训练数据
+            # Add training data
             states.append(current_states[index])
             actions.append(current_better_q)
 
 
-        # 使用专用的数据api，但更慢.
+        # Use dedicated data api, but slower.
         # states = tf.reshape(states, (-1, 12, 8, 8))
         # train_dataset = tf.data.Dataset.from_tensor_slices((states, actions))
         # self.training_model.fit(train_dataset, verbose=0, shuffle=False)
 
-        # 开始训练
+        # Start training
         self.training_model.fit(np.array(states), np.array(actions), batch_size=constants.MINIBATCH_SIZE, verbose=0,
                                 shuffle=False)
 
-        # 更新网络更新计数器
+        # Update network update counters
         if done:
             self.update_counter += 1
 
-        # 网络更新计数器达到上限，更新网络
+        # Network update counter reaches upper limit, update network
         if self.update_counter > constants.UPDATE_EVERY:
             self.trained_model.set_weights(self.training_model.get_weights())
             self.update_counter = 0
 
-        # epsilon衰减
+        # epsilon decay
 
     def epsilon_decay(self):
         self.epsilon = self.epsilon * self.eps_decay if self.epsilon > self.min_epsilon else self.epsilon
 
     def save_weights(self, numOfEpisode):
 
-        # 完成训练后存档参数
-        if numOfEpisode % 100 == 0:
-            self.training_model.save_weights(('./checkpoints/FFA{:}/FFA{:}'.format(numOfEpisode, numOfEpisode)))
+        # Archive parameters after training
+        # save weight every "save_weight" episode, change it in constants.py
+        if numOfEpisode % constants.save_weight == 0:
+            self.training_model.save_weights(('./checkpoints/episode{:}/episode{:}'.format(numOfEpisode, numOfEpisode)))
             print("weights saved!")
 
-    def load_weights(self):
-        self.training_model.load_weights('./checkpoints/FFA800/FFA800')
-        self.trained_model.load_weights('./checkpoints/FFA800/FFA800')
+    def load_weights(self, weight_name):
+        self.training_model.load_weights('./checkpoints/{:}/{:}'.format(weight_name, weight_name))
+        self.trained_model.load_weights('./checkpoints/{:}/{:}'.format(weight_name, weight_name))
         print("weights loaded!")
 
-    def save_model(self):
-        self.training_model.save("./Formal1")
+    def save_model(self, model_name):
+        self.training_model.save("./{:}".format(model_name))
 
-    def data_processing(self, steps, reward, result, episode, copy_and_filter=False, convert_4_corner=False):
-
+    def data_processing(self, state_feature, action, reward, next_state_feature, done):
+        # Convert the top left map to another location
         def convert_left_bottom(state_feature, next_state_feature, action):
             state_feature_left_bottom = []
             for board in state_feature:
@@ -193,42 +198,18 @@ class DQNAgent(BaseAgent):
                 action = 2
             return np.array(state_feature_left_bottom), np.array(next_state_feature_left_bottom), action
 
-        self.buffer.buffer_processing = copy.deepcopy(self.buffer.buffer_episode)
-        if convert_4_corner is True:
-            for state, action, reward, next_state, done in self.buffer.buffer_episode:
-                # 旋转
-                state_left_bottom, next_state_left_bottom, action_left_bottom = convert_left_bottom(state, next_state,
-                                                                                                    action)
-                state_right_bottom, next_state_right_bottom, action_right_bottom = convert_right_bottom(state,
-                                                                                                        next_state,
-                                                                                                        action)
-                state_right_top, next_state_right_top, action_right_top = convert_right_top(state, next_state, action)
-                self.buffer.append_processing(
-                    [state_left_bottom, action_left_bottom, reward, next_state_left_bottom, done])
-                self.buffer.append_processing(
-                    [state_right_bottom, action_right_bottom, reward, next_state_right_bottom, done])
-                self.buffer.append_processing([state_right_top, action_right_top, reward, next_state_right_top, done])
+            # Rotate
 
-        if copy_and_filter is True:
-            # 不考虑loss最后一步 -1的reward
-            if result == 0:
-                reward += 1
+        state_left_bottom, next_state_left_bottom, action_left_bottom = convert_left_bottom(state_feature,
+                                                                                            next_state_feature,
+                                                                                            action)
+        state_right_bottom, next_state_right_bottom, action_right_bottom = convert_right_bottom(state_feature,
+                                                                                                next_state_feature,
+                                                                                                action)
+        state_right_top, next_state_right_top, action_right_top = convert_right_top(state_feature, next_state_feature,
+                                                                                    action)
+        self.buffer.append([state_feature, action, reward, next_state_feature, done])
+        self.buffer.append([state_left_bottom, action_left_bottom, reward, next_state_left_bottom, done])
+        self.buffer.append([state_right_bottom, action_right_bottom, reward, next_state_right_bottom, done])
+        self.buffer.append([state_right_top, action_right_top, reward, next_state_right_top, done])
 
-            average_reward = reward / steps
-            if episode >= 0:
-                # 若平均reward小于阈值，则正常存一份memory
-                if average_reward <= constants.Threshold_max:
-                    self.buffer.merge()
-                else:
-                    self.buffer.merge_negative()
-                # 若reward小于阈值，则多拷贝一份memory
-                if average_reward <= constants.Threshold_min:
-                    self.buffer.merge()
-
-            # 若充分训练，不放入memory
-            # elif reward /steps >= constants.Threshold_max:
-            #     pass
-        else:
-            self.buffer.merge()
-
-        self.buffer.clear()

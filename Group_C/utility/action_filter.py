@@ -4,46 +4,48 @@ import numpy as np
 
 
 def action_filter(current_state, action_list):
-    """对action进行筛选来提高存活率"""
+    """Filtrate the action to improve survival rate"""
     X = current_state["position"][0]
     Y = current_state["position"][1]
-    # 记录agent周围可移动的位置
+    # Record the movable positions around the agent
     move_list = make_move_list(current_state, X, Y)
-    # 若不能移动，则执行action 0（等死）
+    # If agent cannot move, then excute action 0 (waiting to die)
     if move_list is None:
         return 0
-    # 统计执行各种action后 agent的位置
+    # Get the moveable position from agent after statistical analysing various actions
     moveable_position = make_move_position(move_list, X, Y, action_list)
-    # 统计可视范围内的炸弹
+    # Statistical analysing all bombs in visual range
     bomb_list = make_bomb_list(current_state)
-    # 为新位置的危险程度分级
+    # Grade the danger level of the new location
     moveable_position_score = make_dangerous_list(current_state, moveable_position, bomb_list, action_list)
 
     actions = []
-    # 如果存在安全位置，使用安全位置
+    # Use a safe location if one exists
     for action in moveable_position_score:
         if action[3] == 0:
             actions.append(action[2])
-    # 原本动作是安全的，直接选择原本的动作
+    # If a original action is safe, directly choose the original action
     if action_list[-1] in actions:
         return action_list[-1]
 
-    # 无安全位置，选择危险度1的位置
+    # If there is no safe position, choose the position of risk degree 1
     if actions is None:
         actions = []
         for action in moveable_position_score:
             if action[3] == 1:
                 actions.append(action[2])
-    # 原本动作是安全的，直接选择原本的动作
+    # If a original action is safe, directly choose the original action
     if action_list[-1] in actions:
         return action_list[-1]
-    # 无危险度1的位置，选择危险度2的位置
+
+    # If there is no position of risk degree 1, directly choose the position of risk degree 2
     if actions is None:
         actions = []
         for action in moveable_position_score:
             if action[3] == 2:
                 actions.append(action[2])
-    # 无危险度2的位置，选择危险度3的位置
+
+    # If there is no position of risk degree 2, choose the position of risk degree 3
     if actions is None:
         actions = []
         for action in moveable_position_score:
@@ -53,7 +55,7 @@ def action_filter(current_state, action_list):
     if actions is None:
         return random.randint(0, 5)
 
-    # 若有多种可选动作，优先选择非0的动作
+    # If multiple actions are available, the non-0 action is preferred
     if len(actions) != 0:
         modified_action = [action for action in actions if action > 0]
         if len(modified_action) > 0:
@@ -67,85 +69,85 @@ def action_filter(current_state, action_list):
 
 
 def make_move_list(current_state, X, Y):
-    """检查action是否可执行（有意义）"""
+    """Check if the action is executable (meaningful)"""
 
     def check_bomb_action(current_state):
-        """检查action 5是否有意义"""
+        """Check if Action 5 makes sense"""
         meaningful = False
         X = current_state["position"][0]
         Y = current_state["position"][1]
         blast_strength = current_state["blast_strength"]
-        # 判断炸弹左方是否有墙
+        # Determine if there's a wall to the left of the bomb
         for strength in range(1, blast_strength):
-            # 检查是否超出地图边界
+            # Check if an agent is outside the map boundaries
             if Y - strength < 0:
                 break
-            # 如果是rigid，则break
+            # If it is rigid, break
             elif current_state["board"][X][Y - strength] == 1:
                 break
-            # 检查是否有wood,有则有意义
+            # Check if there is wood, then set meaningful to true
             elif current_state["board"][X][Y - strength] == 2:
                 meaningful = True
                 return meaningful
-            # 如果爆炸范围内有敌人，则有意义
+            # It makes sense if there's an enemy in the blast range
             elif current_state["board"][X][Y - strength] in [10, 11, 12, 13]:
                 meaningful = True
                 return meaningful
 
-        # 判断炸弹右方是否有墙
+        # Determine if there's a wall to the right of the bomb
         for strength in range(1, blast_strength):
-            # 检查是否超出地图边界
+            # Check if an agent is outside the map boundaries
             if Y + strength > 10:
                 break
-            # 如果是rigid，则break
+                # If it is rigid, break
             elif current_state["board"][X][Y + strength] == 1:
                 break
-            # 检查是否有wood
+            # Check if there is wood, then set meaningful to true
             elif current_state["board"][X][Y + strength] == 2:
                 meaningful = True
                 return meaningful
-            # 如果爆炸范围内有敌人，则有意义
+            # It makes sense if there's an enemy in the blast range
             elif current_state["board"][X][Y + strength] in [10, 11, 12, 13]:
                 meaningful = True
                 return meaningful
 
-        # 判断炸弹上方是否有墙
+        # Determine if there is a wall above the bomb
         for strength in range(1, blast_strength):
-            # 检查是否超出地图边界
+            # Check if an agent is outside the map boundaries
             if X - strength < 0:
                 break
-            # 如果是rigid，则break
+            # If it is rigid, break
             elif current_state["board"][X - strength][Y] == 1:
                 break
-            # 检查是否有wood
+            # Check if there is wood, then set meaningful to true
             elif current_state["board"][X - strength][Y] == 2:
                 meaningful = True
                 return meaningful
-            # 如果爆炸范围内有敌人，则有意义
+            # It makes sense if there's an enemy in the blast range
             elif current_state["board"][X - strength][Y] in [10, 11, 12, 13]:
                 meaningful = True
                 return meaningful
 
-        # 判断炸弹下方是否有墙
+        # Determine if there is a wall under the bomb
         for strength in range(1, blast_strength):
-            # 检查是否超出地图边界
+            # Check if an agent is outside the map boundaries
             if X + strength > 10:
                 break
-            # 如果是rigid，则break
+            # If it is rigid, break
             elif current_state["board"][X + strength][Y] == 1:
                 break
-            # 检查是否有wood
+            # Check if there is wood, then set meaningful to true
             elif current_state["board"][X + strength][Y] == 2:
                 meaningful = True
                 return meaningful
-            # 如果爆炸范围内有敌人，则有意义
+            # It makes sense if there's an enemy in the blast range
             elif current_state["board"][X + strength][Y] in [10, 11, 12, 13]:
                 meaningful = True
                 return meaningful
         return meaningful
 
     def check_moveable(current_state, X, Y):
-        """检查位置是否可移动"""
+        """Check whether an agent can be moved in this position"""
         moveable = False
         if X < 0 or X > 10 or Y < 0 or Y > 10:
             return moveable
@@ -177,8 +179,8 @@ def make_move_list(current_state, X, Y):
 
 
 def make_move_position(move_list, X, Y, action_list):
-    """计算可移动位置的危险度"""
-    # 前两列，移动后位置，第三列，动作，第四列，危险度
+    """Calculate risk degree of the movable position"""
+    # First two columns, post movement position, third column, movement, fourth column, risk degree
     moveable_position = []
 
     for action in move_list:
@@ -212,18 +214,18 @@ def make_dangerous_list(current_state, moveable_position, bomb_list, action_list
     # safe 0 , dangerous 1, high_dangerous 2, death 3.
 
     def check_block(current_state, position_agent, position_bomb):
-        # 检查雷与agent之间是否有阻碍
+        # Check for obstacles between mines and agents
         block = False
         if position_agent[0] != position_bomb[0]:
             for index in range(1, abs(position_agent[0] - position_bomb[0])):
-                # 检查是否有wood and rigid
+                # Check for wood and rigid
                 if current_state["board"][min(position_agent[0], position_bomb[0]) + index][position_agent[1]] in [1,
                                                                                                                    2]:
                     block = True
                     break
         elif position_agent[1] != position_bomb[1]:
             for index in range(1, abs(position_agent[1] - position_bomb[1])):
-                # 检查是否有wood and rigid
+                # Check for wood and rigid
                 if current_state["board"][position_agent[0]][min(position_agent[1], position_bomb[1]) + index] in [1,
                                                                                                                    2]:
                     block = True
@@ -231,7 +233,7 @@ def make_dangerous_list(current_state, moveable_position, bomb_list, action_list
 
         return block
 
-    # 检查死胡同
+    # Check dead ends
     def check_dead_end(current_state, moveable_position, action_list):
         for position in moveable_position:
             if action_list[-2] == 5 and position[2] == 1:
@@ -260,7 +262,7 @@ def make_dangerous_list(current_state, moveable_position, bomb_list, action_list
 
         return moveable_position
 
-    # 检查火焰
+    # Check the flame
     def check_flame(current_state, moveable_position):
         for position in moveable_position:
             if current_state["flame_life"][position[0]][position[1]] != 0:
@@ -272,11 +274,15 @@ def make_dangerous_list(current_state, moveable_position, bomb_list, action_list
     #     return moveable_position
     moveable_position = check_dead_end(current_state, moveable_position, action_list)
 
-    # 即使视野里没有炸弹，也要检查是否有火焰
+    # Check for flames, even if there is no bomb in sight
     if len(bomb_list) == 0:
         moveable_position = check_flame(current_state, moveable_position)
         return moveable_position
-        # 将moveable position 按危险程度分类，同一位置为多颗炸弹或火焰威胁时，优先记录最高危险级别.
+        '''
+            Moveable position is classified according to the danger level.
+            when agent is threatened by multiple bombs or flames in the same location,
+            the highest danger level is recorded first.
+        '''
     for agent_position in moveable_position:
         for bomb_position in bomb_list:
             if bomb_position[0] == agent_position[0] or bomb_position[1] == agent_position[1]:

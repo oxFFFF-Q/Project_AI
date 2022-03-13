@@ -4,14 +4,6 @@ import numpy as np
 import pandas as pd
 import random
 
-# from DQNAgent_modified import DQNAgent
-# from DQNAgent_noisy import DQNAgent
-# from DQNAgent_one_vs_one import DQNAgent
-# from DQNAgent_dueling_dqn import DQNAgent
-# from DQNAgent_double_dqn import DQNAgent
-# from DQNAgent_ddqn2 import DQNAgent
-
-# from DQNAgent_rainbow import DQNAgent
 from pommerman.agents import SimpleAgent
 from Group_C.utility.utility import featurize2D, reward_shaping
 
@@ -42,7 +34,8 @@ def main(strategy='DQN_basic'):
     agent_list = [agent1, agent2, agent3, agent4]
 
     env = pommerman.make('PommeFFACompetitionFast-v0', agent_list)
-    episode_rewards = []  # 记录平均reward
+    # Record average reward
+    episode_rewards = []
 
     win = 0
     draw = 0
@@ -53,11 +46,11 @@ def main(strategy='DQN_basic'):
     total_numOfSteps = 0
     episode = 0
 
+    """please stop training manually"""
     while True:
 
         current_state = env.reset()
-        # 将state 转化 1D array
-
+        # Convert state to 1D array
         episode_reward = 0
         numOfSteps = 0
         episode += 1
@@ -68,19 +61,19 @@ def main(strategy='DQN_basic'):
             state_feature = featurize2D(current_state[2])
             numOfSteps += 1
             total_numOfSteps += 1
-            # 使用random action收集数据
+            # Use random action to collect data
             if constants.epsilon > np.random.random() and total_numOfSteps >= constants.MIN_REPLAY_MEMORY_SIZE:
-                # 获取动作
+                # Get Action
                 actions = env.act(current_state)
                 actions[0] = np.argmax(agent1.action_choose(state_feature)).tolist()
             else:
-                # 随机动作收集数据
+                # Use random action collects data
                 actions = env.act(current_state)
                 actions[0] = random.randint(0, 5)
 
             new_state, result, done, info = env.step(actions)
 
-            # 若我们的agent死亡，停止本局游戏，加速训练
+            # If our agent is dead, the game is stopped and we accelerate training
             if 10 not in new_state[0]["alive"]:
                 done = True
 
@@ -91,15 +84,15 @@ def main(strategy='DQN_basic'):
             next_state_feature = featurize2D(new_state[0])
             episode_reward += reward
 
-            # 每一定局数显示游戏画面
+            # Display the game screen for each set number of games
             if constants.SHOW_PREVIEW and not episode % constants.SHOW_GAME:
                 env.render()
 
-            # 储存记忆
+            # Store memory
             agent1.save_buffer(state_feature, actions[0], reward, next_state_feature, done)
-            # 学习!
+            # Learn
             agent1.train()
-            # 更新state
+            # Update state
             current_state = new_state
 
             if done:
@@ -114,16 +107,16 @@ def main(strategy='DQN_basic'):
                 win += 1
                 result = 2
 
-        # 记录胜负情况
+        # Record win and losses
         if numOfSteps == constants.MAX_STEPS + 1:
             draw += 1
             result = 1
         win_rate = win / total_game
         draw_rate = draw / total_game
 
-        # 存reward
+        # Store reward
         reward_to_csv.append(episode_reward)
-        # 存result
+        # Store result
         result_to_csv.append(result)
 
         if episode % constants.SHOW_EVERY == 0:
@@ -148,24 +141,27 @@ def main(strategy='DQN_basic'):
                     win_rate,
                     draw_rate))
 
-        # agent1.epsilon_decay()
+        agent1.epsilon_decay()
         agent1.save_weights(episode)
+
+        # function for data augmentation
         # agent1.data_processing(numOfSteps, episode_reward, result, episode)
 
-        # 记录结果，留作图表
-        if episode % 50 == 0:
-            df_reward = pd.DataFrame({"reward": reward_to_csv})
-            df_reward.to_csv("reward.csv", index=False, mode="a", header=False)
-            print("successfully saved reward")
-            reward_to_csv = []
-            df_result = pd.DataFrame({"result": result_to_csv})
-            df_result.to_csv("result.csv", index=False, mode="a", header=False)
-            print("successfully saved result")
-            result_to_csv = []
+        """If you want to save result and reward as csv, please uncomment the code below"""
+        # Record the results and chart them
+        # if episode % 50 == 0:
+        #     df_reward = pd.DataFrame({"reward": reward_to_csv})
+        #     df_reward.to_csv("reward.csv", index=False, mode="a", header=False)
+        #     print("successfully saved reward")
+        #     reward_to_csv = []
+        #     df_result = pd.DataFrame({"result": result_to_csv})
+        #     df_result.to_csv("result.csv", index=False, mode="a", header=False)
+        #     print("successfully saved result")
+        #     result_to_csv = []
 
     env.close()
 
 
 if __name__ == '__main__':
-    main(strategy='DQN_basic')
+    main(strategy='DQN_double')
     # strategies: 'DQN_basic', 'DQN_double', 'DQN_dueling', 'DQN_priority', 'DQN_noisy', 'DQN_multi_steps', 'DQN_final'
