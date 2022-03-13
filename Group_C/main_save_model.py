@@ -20,7 +20,7 @@ def main(strategy='DQN_basic'):
     agent1 = DQNAgent()
 
     # load saved weights from checkpoint
-    weight = "episode40"
+    weight = "episode100"
     agent1.load_weights(weight)
     # save and rename your model
     model_name = "new_model"
