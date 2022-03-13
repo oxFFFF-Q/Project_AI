@@ -30,11 +30,11 @@ def reward_shaping(current_state, new_state, action, result, action_list):
     new_X = new_state["position"][0]
     new_Y = new_state["position"][1]
 
-    # 左上角训练时，队友与敌人的情况
+    # Upper left corner when training, states of teammate and enemy
     enemies = [11, 12, 13]
     teammate = [10]
 
-    # 记录agent上下左右格子的情况，为了方便计算reward
+    # Record the situation of the upper, lower, left and right grids of agent to facilitate the calculation of rewards
     current_grids = []
     if X - 1 >= 0:
         current_grids.append(current_state["board"][X - 1][Y])
@@ -45,16 +45,16 @@ def reward_shaping(current_state, new_state, action, result, action_list):
     if Y + 1 <= 10:
         current_grids.append(current_state["board"][X][Y + 1])
 
-    # 检查是否踢了炸弹
+    # Check to see if the bomb was kicked
     if current_state["can_kick"] is True and new_state["can_kick"] is False:
         reward += r_kick
 
     """
-    action为0时，统计各种reward.
-    check_avoid_flame 检查action是否是为了躲避火焰
-    check_corner_bomb 检查action是否是为了躲避炸弹
-    check_in_flame    检查action是否导致agent死亡
-    check_and_away_from_bomb 检查action是否是agent远离炸弹
+        If the action value is 0, all rewards are counted.
+        Check_avoid_flame: Checks if action is intended to avoid flames
+        Check_corner_bomb: Checks if the action is used to avoid bombs
+        Check_in_flame: Checks whether the action causes agent death
+        Check_and_away_from_bomb: Checks whether the action is that agent away from the bomb
     """
     if action == 0:
         reward = check_avoid_flame(reward, r_avoid, current_grids)
@@ -65,16 +65,16 @@ def reward_shaping(current_state, new_state, action, result, action_list):
         return reward
 
     """
-        执行move action时，统计各种reward.
-        check_dead_end 检查action是否导致进入死胡同
-        check_ignore_powerup 检查action是否无视powerup（路过但不捡）
-        check_move_loop    检查action是否是循环的无意义操作（刷reward）
-        check_power_up     检查action是否捡起powerup
-        check_in_flame     检查action是否导致agent死亡
-        check_and_away_from_bomb 检查action是否是agent远离炸弹
+        When executing the Move Action, collect rewards.
+        Check_dead_end: Checks whether an action is causing a dead end
+        Check_ignore_powerup: Checks if action ignores powerup (passing but not picking up)
+        Check_move_loop: Checks if an action is a meaningless operation
+        Check_power_up: Checks whether the action picks up powerUp
+        Check_in_flame: Checks whether the action causes agent death
+        Check_and_away_from_bomb: Checks whether the action is that agent away from the bomb
         """
     if action == 1:
-        # 检查是否撞墙
+        # Check if agent hits a wall
         if current_state["position"] == new_state["position"]:
             reward += r_move_towards_wood
         else:
@@ -90,7 +90,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
         return reward
 
     if action == 2:
-        # 检查是否撞墙
+        # Check if agent hits a wall
         if current_state["position"] == new_state["position"]:
             reward += r_move_towards_wood
         else:
@@ -106,7 +106,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
         return reward
 
     if action == 3:
-        # 检查是否撞墙
+        # Check if agent hits a wall
         if current_state["position"] == new_state["position"]:
             reward += r_move_towards_wood
         else:
@@ -122,7 +122,7 @@ def reward_shaping(current_state, new_state, action, result, action_list):
         return reward
 
     if action == 4:
-        # 检查是否撞墙
+        # Check if agent hits a wall
         if current_state["position"] == new_state["position"]:
             reward += r_move_towards_wood
         else:
@@ -137,10 +137,10 @@ def reward_shaping(current_state, new_state, action, result, action_list):
                                           r_get_close_to_bomb, action_list)
         return reward
     """
-    执行action 5时统计各种reward
-    check_in_flame     检查action是否导致agent死亡
-    check_and_away_from_bomb 检查action是否是agent远离炸弹
-    check_bomb_reward  检查action是否炸掉wood，或是否有敌人存在于爆炸范围内。
+        Collect rewards for action 5
+        Check_in_flame: Checks whether the action causes agent death
+        Check_and_away_from_bomb: Checks whether the action is agent away from the bomb
+        Check_bomb_reward: checks if the action blows up wood, or if an enemy is within the blast range.
     """
 
     if action == 5:
@@ -153,7 +153,8 @@ def reward_shaping(current_state, new_state, action, result, action_list):
             reward = check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy, r_attack_teammate,
                                        enemies, teammate)
         else:
-            # ammo=0时继续放炸弹为无意义操作，惩罚为2倍的撞墙reward
+            # When ammo == 0, continue to lay bomb is considered as meanless action.
+            # The penalty is twice the reward for hitting the wall
             reward += (2 * r_move_towards_wood)
 
         return reward
@@ -161,73 +162,73 @@ def reward_shaping(current_state, new_state, action, result, action_list):
 
 def check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy, r_attack_teammate, enemies, teammate):
     blast_strength = current_state["blast_strength"]
-    # 判断炸弹左方是否有墙
+    # Determine if there's a wall to the left of the bomb
     for strength in range(1, blast_strength):
-        # 检查是否超出地图边界
+        # Check if agent are outside the map boundaries
         if Y - strength < 0:
             break
-        # 检查是否有wood
+        # Check for wood
         elif current_state["board"][X][Y - strength] == 2:
             reward += r_wood
             break
-        # 如果是rigid，则break
+        # If it is rigid, break
         elif current_state["board"][X][Y - strength] == 1:
             break
-        # 如果爆炸范围内有敌人，获得reward
+        # If an enemy is within blast range, earn a reward
         elif current_state["board"][X][Y - strength] in enemies:
             reward += r_lay_bomb_near_enemy
         elif current_state["board"][X][Y - strength] in teammate:
             reward += r_attack_teammate
 
-    # 判断炸弹右方是否有墙
+    # Determine if there's a wall to the right of the bomb
     for strength in range(1, blast_strength):
-        # 检查是否超出地图边界
+        # Check if agent are outside the map boundaries
         if Y + strength > 10:
             break
-        # 检查是否有wood
+        # Check for wood
         elif current_state["board"][X][Y + strength] == 2:
             reward += r_wood
             break
-        # 如果是rigid，则break
+        # If it is rigid, break
         elif current_state["board"][X][Y + strength] == 1:
             break
-        # 如果爆炸范围内有敌人，获得reward
+        # If an enemy is within blast range, earn a reward
         elif current_state["board"][X][Y + strength] in enemies:
             reward += r_lay_bomb_near_enemy
         elif current_state["board"][X][Y + strength] in teammate:
             reward += r_attack_teammate
 
-    # 判断炸弹上方是否有墙
+    # Determine if there's a wall above the bomb
     for strength in range(1, blast_strength):
-        # 检查是否超出地图边界
+        # Check if agent are outside the map boundaries
         if X - strength < 0:
             break
-        # 检查是否有wood
+        # Check for wood
         elif current_state["board"][X - strength][Y] == 2:
             reward += r_wood
             break
-        # 如果是rigid，则break
+        # If it is rigid, break
         elif current_state["board"][X - strength][Y] == 1:
             break
-        # 如果爆炸范围内有敌人，获得reward
+        # If an enemy is within blast range, earn a reward
         elif current_state["board"][X - strength][Y] in enemies:
             reward += r_lay_bomb_near_enemy
         elif current_state["board"][X - strength][Y] in teammate:
             reward += r_attack_teammate
 
-    # 判断炸弹下方是否有墙
+    # Determine if there is a wall under the bomb
     for strength in range(1, blast_strength):
-        # 检查是否超出地图边界
+        # Check if agent are outside the map boundaries
         if X + strength > 10:
             break
-        # 检查是否有wood
+        # Check for wood
         elif current_state["board"][X + strength][Y] == 2:
             reward += r_wood
             break
-        # 如果是rigid，则break
+        # If it is rigid, break
         elif current_state["board"][X + strength][Y] == 1:
             break
-        # 如果爆炸范围内有敌人，获得reward
+        # If an enemy is within the blast range, you will receive a reward
         elif current_state["board"][X + strength][Y] in enemies:
             reward += r_lay_bomb_near_enemy
         elif current_state["board"][X + strength][Y] in teammate:
@@ -236,7 +237,7 @@ def check_bomb_reward(current_state, X, Y, reward, r_wood, r_lay_bomb_near_enemy
 
 
 def check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y):
-    """若agent与火焰位置重叠，则死亡，返回reward"""
+    """If the agent overlaps with the flame, it dies and returns reward"""
 
     if current_state["flame_life"][X][Y] == 0 and new_state["flame_life"][new_X][new_Y] != 0:
         reward += r_lose
@@ -244,7 +245,7 @@ def check_in_flame(current_state, new_state, reward, r_lose, X, Y, new_X, new_Y)
 
 
 def check_power_up(new_X, new_Y, current_state, reward, r_power_up):
-    """检查是否吃到reward"""
+    """Check whether agent eats power Up"""
     if current_state["board"][new_X][new_Y] in [6, 7, 8]:
         reward += r_power_up
 
@@ -252,8 +253,8 @@ def check_power_up(new_X, new_Y, current_state, reward, r_power_up):
 
 
 def check_corner_bomb(current_state, X, Y, reward, r_avoid, r_stay, current_grids):
-    """使用action 0 来躲避炸弹"""
-    # action 0 来躲避左上bomb
+    """Use Action 0 to avoid bombs"""
+    # action 0 to avoid upper left bomb
     find_bomb = False
     if X - 1 >= 0 and Y - 1 >= 0 and current_state["board"][X - 1][Y - 1] == 3:
         reward += r_avoid
@@ -261,21 +262,21 @@ def check_corner_bomb(current_state, X, Y, reward, r_avoid, r_stay, current_grid
     if X - 1 >= 0 and Y - 2 >= 0 and current_state["board"][X - 1][Y - 2] == 3:
         reward += r_avoid
         find_bomb = True
-        # 右上
+    # upper right
     if X - 1 >= 0 and Y + 1 <= 10 and current_state["board"][X - 1][Y + 1] == 3:
         reward += r_avoid
         find_bomb = True
     if X - 1 >= 0 and Y + 2 <= 10 and current_state["board"][X - 1][Y + 2] == 3:
         reward += r_avoid
         find_bomb = True
-    # 左下
+    # lower left
     if X + 1 <= 10 and Y - 1 >= 0 and current_state["board"][X + 1][Y - 1] == 3:
         reward += r_avoid
         find_bomb = True
     if X + 2 <= 10 and Y - 1 >= 0 and current_state["board"][X + 2][Y - 1] == 3:
         reward += r_avoid
         find_bomb = True
-    # 右下
+    # lower right
     if X + 1 <= 10 and Y + 1 <= 10 and current_state["board"][X + 1][Y + 1] == 3:
         reward += r_avoid
         find_bomb = True
@@ -290,13 +291,13 @@ def check_corner_bomb(current_state, X, Y, reward, r_avoid, r_stay, current_grid
 
 def check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_away_from_bomb, r_get_close_to_bomb,
                              action_list):
-    """远离危险时，获得reward"""
-    # 远离上下左右四个方向的炸弹
+    """Get a reward when out of danger"""
+    # Get a reward when out of danger
     if action_list[2] == 5 and (X != new_X or Y != new_Y):
         reward += r_get_away_from_bomb
     elif action_list[2] == 5 and (X == new_X and Y == new_Y):
         reward += 2 * r_get_close_to_bomb
-    # 上
+    # above
     if X - 1 >= 0 and current_state["board"][X - 1][Y] == 3 and (abs((X - 1) - new_X) + abs(Y - new_Y)) > 1:
         reward += r_get_away_from_bomb
     if X - 1 >= 0 and current_state["board"][X - 1][Y] == 3 and (abs((X - 1) - new_X) + abs(Y - new_Y)) == 1:
@@ -313,7 +314,7 @@ def check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_aw
     elif X - 3 >= 0 and current_state["board"][X - 3][Y] == 3 and (abs((X - 3) - new_X) + abs(Y - new_Y)) <= 3 and \
             current_state["board"][X - 1][Y] not in [1, 2] and current_state["board"][X - 2][Y] not in [1, 2]:
         reward += r_get_close_to_bomb
-    # 下
+    # below
     if X + 1 <= 10 and current_state["board"][X + 1][Y] == 3 and (abs((X + 1) - new_X) + abs(Y - new_Y)) > 1:
         reward += r_get_away_from_bomb
     if X + 1 <= 10 and current_state["board"][X + 1][Y] == 3 and (abs((X + 1) - new_X) + abs(Y - new_Y)) == 1:
@@ -331,7 +332,7 @@ def check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_aw
             current_state["board"][X + 1][Y] not in [1, 2] and current_state["board"][X + 2][Y] not in [1, 2]:
         reward += r_get_close_to_bomb
 
-    # 左
+    # left
     if Y - 1 >= 0 and current_state["board"][X][Y - 1] == 3 and (abs(X - new_X) + abs((Y - 1) - new_Y)) > 1:
         reward += r_get_away_from_bomb
     if Y - 1 >= 0 and current_state["board"][X][Y - 1] == 3 and (abs(X - new_X) + abs((Y - 1) - new_Y)) == 1:
@@ -349,7 +350,7 @@ def check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_aw
             current_state["board"][X][Y - 1] not in [1, 2] and current_state["board"][X][Y - 2] not in [1, 2]:
         reward += r_get_close_to_bomb
 
-    # 右
+    # right
     if Y + 1 <= 10 and current_state["board"][X][Y + 1] == 3 and (abs(X - new_X) + abs((Y + 1) - new_Y)) > 1:
         reward += r_get_away_from_bomb
     if Y + 1 <= 10 and current_state["board"][X][Y + 1] == 3 and (abs(X - new_X) + abs((Y + 1) - new_Y)) == 1:
@@ -367,21 +368,21 @@ def check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_aw
             current_state["board"][X][Y + 1] not in [1, 2] and current_state["board"][X][Y + 2] not in [1, 2]:
         reward += r_get_close_to_bomb
 
-    # 检查四角方向 左上
+    # Check the corners upper left
     if X - 1 >= 0 and Y - 1 >= 0 and current_state["board"][X - 1][Y - 1] == 3 and (abs((X - 1) - new_X)) + abs(
             (Y - 1) - new_Y) > 2:
         reward += r_get_away_from_bomb
     elif X - 1 >= 0 and Y - 1 >= 0 and current_state["board"][X - 1][Y - 1] == 3 and (abs((X - 1) - new_X)) + abs(
             (Y - 1) - new_Y) < 2:
         reward += r_get_close_to_bomb
-    # 左下
+    # The lower left
     if X + 1 <= 10 and Y - 1 >= 0 and current_state["board"][X + 1][Y - 1] == 3 and (abs((X + 1) - new_X)) + abs(
             (Y - 1) - new_Y) > 2:
         reward += r_get_away_from_bomb
     elif X + 1 <= 10 and Y - 1 >= 0 and current_state["board"][X + 1][Y - 1] == 3 and (abs((X + 1) - new_X)) + abs(
             (Y - 1) - new_Y) < 2:
         reward += r_get_close_to_bomb
-    # 右上
+    # The upper right
     if X - 1 >= 0 and Y + 1 <= 10 and current_state["board"][X - 1][Y + 1] == 3 and (abs((X - 1) - new_X)) + abs(
             (Y + 1) - new_Y) > 2:
         reward += r_get_away_from_bomb
@@ -389,7 +390,7 @@ def check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_aw
             (Y + 1) - new_Y) < 2:
         reward += r_get_close_to_bomb
 
-    # 右下
+    # The lower right
     if X + 1 <= 10 and Y + 1 <= 10 and current_state["board"][X + 1][Y + 1] == 3 and (abs((X + 1) - new_X)) + abs(
             (Y + 1) - new_Y) > 2:
         reward += r_get_away_from_bomb
@@ -401,7 +402,7 @@ def check_and_away_from_bomb(current_state, X, Y, new_X, new_Y, reward, r_get_aw
 
 
 def check_move_loop(action_list, reward, r_move_loop):
-    """执行循环无意义actions时，获得惩罚"""
+    """Penalty for performing circular meaningless actions"""
     check_list = [[1, 2, 1, 2],
                   [2, 1, 2, 1],
                   [3, 4, 3, 4],
@@ -420,7 +421,7 @@ def check_move_loop(action_list, reward, r_move_loop):
 
 
 def check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end):
-    """检查是否在死胡同"""
+    """Check if it's in a dead end"""
     if action_list[2] == 5 and action_list[3] == 1:
         if (new_Y - 1 < 0 or new_state["board"][new_X][new_Y - 1] in [1, 2, 3]) and \
                 (new_Y + 1 > 10 or new_state["board"][new_X][new_Y + 1] in [1, 2, 3]) and \
@@ -450,14 +451,14 @@ def check_dead_end(new_state, new_X, new_Y, action_list, reward, r_dead_end):
 
 
 def check_avoid_flame(reward, r_avoid, current_grids):
-    """检查action是否在规避火焰"""
+    """Check if action is used to avoid flames"""
     if 4 in current_grids and all((grid in [1, 2, 3, 4]) for grid in current_grids):
         reward += r_avoid
     return reward
 
 
 def check_ignore_powerup(current_state, new_X, new_Y, action_list, current_grids, reward, r_ignore_penalty):
-    """检查是否无视powerup"""
+    """Check whether powerUp is ignored"""
     if ((6 or 7 or 8) in current_grids) and current_state["board"][new_X][new_Y] not in [6, 7, 8] and (
             5 not in action_list) and \
             current_state["ammo"] != 0:
@@ -467,15 +468,15 @@ def check_ignore_powerup(current_state, new_X, new_Y, action_list, current_grids
 
 
 def featurize2D(states, partially_obs=True):
-    """处理oberservation，使其匹配network的格式"""
-    # 共18个矩阵
+    """Process Oberservation to match network format"""
+    # There are 18 matrices
     X = states["position"][0]
     Y = states["position"][1]
     shape = (11, 11)
 
-    # 处理path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
+    # Process path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
     def get_partially_obs(states, X, Y):
-        """在FFA环境下，限制视野"""
+        """Limit field of view in FFA environment"""
         board = np.full(shape, 5)
         for x in range(10):
             for y in range(10):
@@ -534,7 +535,7 @@ def featurize2D(states, partially_obs=True):
 
 
 def rebuild_1D_element(states):
-    """处理oberservation中的一些1D数据"""
+    """Process some 1D data in Oberservation"""
     shape = (11, 11)
 
     ammo = states["ammo"]

@@ -14,20 +14,18 @@ def main():
 
     agent_list = [agent1, agent2, agent3, agent4]
     env = pommerman.make("PommeRadioCompetition-v2", agent_list)
-    # env = pommerman.make("PommeFFACompetitionFast-v0", agent_list)
-    episode_rewards = []  # 记录平均reward
-
+    # Record average reward
+    episode_rewards = []
     win = 0
     draw = 0
     total_game = 0
 
     total_numOfSteps = 0
     episode = 0
-    # 进行100局测试
+    # Conduct 100 rounds of testing
     for i in range(100):
         current_state = env.reset()
-        # 将state 转化 1D array
-
+        # Convert state to 1D array
         episode_reward = 0
         numOfSteps = 0
         episode += 1
@@ -44,7 +42,7 @@ def main():
             if 10 not in new_state[0]["alive"]:
                 done = True
 
-            # 更新state
+            # Update state
             current_state = new_state
 
             if done:
@@ -59,7 +57,7 @@ def main():
                 win += 1
                 result = 2
 
-        # 记录胜负情况
+        # Record wins and losses
         if numOfSteps == constants.MAX_STEPS + 1:
             draw += 1
             result = 1

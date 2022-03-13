@@ -84,9 +84,9 @@ class replay_Memory():
 
     def sample_element_pri(self, batch_size):
         # Prioritized DQN
-        # 根据td_error排序，求出索引index, 从小到大
+        # According to td_error sort, find the index, from small to large
         index = np.argsort(np.array(self.buffer_td).flatten()).tolist()
-        # buffer 按index排序
+        # Buffers are sorted by index
         buffer_sort = self.buffer
         if len(index) != 0 and len(buffer_sort) != 0:
             for i in range(len(self.buffer)):
@@ -94,11 +94,11 @@ class replay_Memory():
         prioritization = int(batch_size * self.alpha)  # self.alpha = 0.6
         batch_prioritized = []
         for i in range(prioritization):
-            # 反向添加，从大到小
+            # Add in reverse, from large to small
             batch_prioritized.append(buffer_sort[-i - 1])
         mini_batch = random.sample(self.buffer, batch_size - prioritization)
         td = self.buffer_td
-        # 最训练使用数据batch= batch_prioritized(按td_error从大到小)+mini_batch(随机抽取)
+        # Training uses data: batch= batch_prioritized(according to td_error to go from large to small)+mini_batch(random selection)
         batch = batch_prioritized + mini_batch
         current_state, action, reward, new_states, done, td_error = [], [], [], [], [], []
 

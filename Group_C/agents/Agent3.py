@@ -1,5 +1,6 @@
 from pommerman.agents import BaseAgent
-from action_filter import action_filter
+from Group_C.utility.action_filter import action_filter
+from Group_C.utility.communication import message
 import numpy as np
 import tensorflow as tf
 import collections
@@ -7,7 +8,7 @@ import os
 
 
 class DQNAgent(BaseAgent):
-    """DQN second try with keras"""
+    """DQNAgent for running"""
 
     def __init__(self, *args, **kwargs):
         super(DQNAgent, self).__init__(*args, **kwargs)
@@ -23,11 +24,12 @@ class DQNAgent(BaseAgent):
         return q_table
 
     def act(self, observation, action_space):
+        mess, observation = message(observation)  # Communication: information sending, receiving processing
         action = np.argmax(self.action_predict(observation)).tolist()
         self.action_list.append(action)
         action = action_filter(observation, self.action_list)
         self.action_list[-1] = action
-        return action
+        return [action, mess[0], mess[1]]
 
     def episode_end(self, reward):
         pass
@@ -36,12 +38,12 @@ class DQNAgent(BaseAgent):
         pass
 
     def featurize2D(self, states, partially_obs=True):
-        # 共18个矩阵
+        # 18 channels in total
         X = states["position"][0]
         Y = states["position"][1]
         shape = (11, 11)
 
-        # path, rigid, wood, bomb, flame, fog, power_up, agent1, agent2, agent3, agent4
+        # get limited observation
         def get_partially_obs(states, X, Y):
             # board = np.zeros(shape)
             board = np.full(shape, 5)

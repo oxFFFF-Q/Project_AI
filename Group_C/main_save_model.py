@@ -18,10 +18,13 @@ def main(strategy='DQN_basic'):
         from agents.DQNAgent_final import DQNAgent
 
     agent1 = DQNAgent()
-    #读取已训练好的网络参数
-    agent1.load_weights()
-    # 参数为model名称
-    agent1.save_model("new_model")
+
+    # load saved weights from checkpoint
+    weight = "episode100"
+    agent1.load_weights(weight)
+    # save and rename your model
+    model_name = "new_model"
+    agent1.save_model(model_name)
 
 if __name__ == '__main__':
     main(strategy='DQN_basic')
