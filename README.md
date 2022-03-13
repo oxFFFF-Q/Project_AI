@@ -68,3 +68,4 @@ Select other names for `strategy` in [main_train.py](Group_C/main_train.py) to t
 
 # Visualize the experiment results
 
+Our experiment results are all stored in [data](Group_C/result_image/data). Run [make_image.py](Group_C/result_image/make_image.py) to get a visualization of them.
