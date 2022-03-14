@@ -1,8 +1,0 @@
-r_wood = 0.3
-    r_powerup = 0.5
-    r_put_bomb = 0.3
-    r_put_bomb_near_enemy = 1
-    r_kick = 0.5
-    r_in_flame = -10
-    r_move = -0.02
-    r_stay = -0.04
