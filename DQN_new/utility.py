@@ -95,15 +95,49 @@ def rebuild_board(board):
                 new_row.append(0.0)
         power_up.append(new_row)
 
-    agents = []
-    # 如果是9,10,11,12代为此处为agent,则取1.0
+    agent1 = []
+    # 如果是9为此处为agent,则取1.0
     for row in board:
         new_row = []
         for num in row:
-            if num == 9 or num == 10 or num == 11 or num == 12:
+            if num == 9:
                 new_row.append(1.0)
             else:
                 new_row.append(0.0)
-        agents.append(new_row)
+        agent1.append(new_row)
 
-    return rigid, wood,bomb, power_up, agents
+    agent2 = []
+    # 如果是10为此处为agent,则取1.0
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 10:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        agent2.append(new_row)
+
+    agent3 = []
+    # 如果是11为此处为agent,则取1.0
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 11:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        agent3.append(new_row)
+
+    agent4 = []
+    # 如果是12为此处为agent,则取1.0
+    for row in board:
+        new_row = []
+        for num in row:
+            if num == 12:
+                new_row.append(1.0)
+            else:
+                new_row.append(0.0)
+        agent4.append(new_row)
+
+    return rigid, wood, bomb, power_up, agent1, agent2, agent3, agent4
+

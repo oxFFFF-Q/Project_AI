@@ -26,7 +26,7 @@ ITEM_COLORS += [(153, 153, 255), (153, 204, 204), (97, 169, 169), (48, 117,
                                                                    117)]
 # If using collapsing boards, the step at which the board starts to collapse.
 FIRST_COLLAPSE = 500
-MAX_STEPS = 800
+MAX_STEPS = 300
 RADIO_VOCAB_SIZE = 8
 RADIO_NUM_WORDS = 2
 
