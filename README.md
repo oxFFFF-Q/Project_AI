@@ -72,4 +72,4 @@ Our experiment results are all stored in [data](DQNAgent/result_image/data). Run
 
 # Reference
 
-Our approch get inspired from Sentdex tutorial, url:https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/
+Our approch get inspired from [Sentdex tutorial](https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/)
