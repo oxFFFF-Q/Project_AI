@@ -69,3 +69,7 @@ Select other names for `strategy` in [main_train.py](DQNAgent/main_train.py) to 
 # Visualize the experiment results
 
 Our experiment results are all stored in [data](DQNAgent/result_image/data). Run [make_image.py](DQNAgent/result_image/make_image.py) to get a visualization of them.
+
+# Reference
+
+Our approch get inspired from Sentdex tutorial, url:https://pythonprogramming.net/training-deep-q-learning-dqn-reinforcement-learning-python-tutorial/
